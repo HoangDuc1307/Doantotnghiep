@@ -1,0 +1,29 @@
+<div class="dialog-backdrop" (click)="dismiss()">
+  <section class="dialog profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-title" (click)="$event.stopPropagation()">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">HỒ SƠ CỦA BẠN</span><h2 id="profile-title">Thiết lập mục tiêu hằng ngày</h2></div>
+      <button type="button" class="icon-button" (click)="dismiss()" [disabled]="saving" aria-label="Đóng thiết lập mục tiêu">×</button>
+    </div>
+    <p class="intro profile-intro">Mục tiêu năng lượng giúp chuẩn bị cho tính năng gợi ý thực đơn. Chiều cao và cân nặng là tùy chọn.</p>
+    <form novalidate (submit)="save($event)">
+      <label class="form-field">Mục tiêu năng lượng mỗi ngày (kcal)
+        <input name="dailyCalorieTarget" type="text" inputmode="numeric" [(ngModel)]="dailyCalorieTarget" aria-describedby="calorie-help" [attr.aria-invalid]="formError ? 'true' : null" placeholder="Ví dụ: 2000" />
+      </label>
+      <small id="calorie-help" class="field-hint">Bạn có thể cập nhật mục tiêu này bất cứ lúc nào.</small>
+      <div class="form-split">
+        <label class="form-field">Chiều cao <span class="optional-label">(cm, tùy chọn)</span>
+          <input name="heightCm" type="text" inputmode="decimal" [(ngModel)]="heightCm" placeholder="Ví dụ: 165" />
+        </label>
+        <label class="form-field">Cân nặng <span class="optional-label">(kg, tùy chọn)</span>
+          <input name="weightKg" type="text" inputmode="decimal" [(ngModel)]="weightKg" placeholder="Ví dụ: 55,5" />
+        </label>
+      </div>
+      @if (formError) { <p class="form-error" role="alert">{{ formError }}</p> }
+      <p class="form-note">Dữ liệu này chỉ dùng cho hồ sơ trong ứng dụng; tính năng này không đưa ra tư vấn y khoa.</p>
+      <div class="dialog-actions">
+        @if (canSkip) { <button type="button" class="secondary-button" (click)="dismiss()" [disabled]="saving">Bỏ qua lúc này</button> }
+        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Đang lưu…' : 'Lưu mục tiêu' }}</button>
+      </div>
+    </form>
+  </section>
+</div>

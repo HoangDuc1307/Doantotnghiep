@@ -1,0 +1,24 @@
+<section class="welcome-row">
+  <div><div class="eyebrow"><span></span> GÓC BẾP HÔM NAY</div><h1>Chào bạn, <em>căn bếp đây rồi.</em></h1><p class="intro">Một chút chăm chút hôm nay, bữa ăn lành mạnh ngày mai.</p></div>
+  <div class="date-chip"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></svg>{{ todayLabel() }}</div>
+</section>
+@if (showProfileReminder) {
+  <section class="profile-reminder" aria-label="Nhắc thiết lập mục tiêu năng lượng">
+    <div><span class="eyebrow">CÁ NHÂN HÓA THỰC ĐƠN</span><strong>Bạn chưa thiết lập mục tiêu năng lượng mỗi ngày.</strong><p>Thêm mục tiêu để sẵn sàng nhận gợi ý thực đơn phù hợp hơn.</p></div>
+    <div class="profile-reminder-actions"><button type="button" class="secondary-button" (click)="reminderDeferred.emit()">Nhắc tôi sau</button><button type="button" class="primary-button" (click)="profileRequested.emit()">Thiết lập</button></div>
+  </section>
+}
+<section class="dashboard-grid" aria-label="Tóm tắt căn bếp">
+  <a class="overview-stat" href="/inventory" (click)="inventoryRequested.emit($event)">
+    <span class="mini-icon olive"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 2 10h14l2-10H3Z" /><path d="m8 10 4-7 4 7" /></svg></span>
+    <strong>{{ items.length }}</strong><span>thực phẩm trong kho</span><span class="overview-link">Mở kho thực phẩm <span aria-hidden="true">→</span></span>
+  </a>
+  <a class="overview-stat" href="/inventory" (click)="inventoryRequested.emit($event)">
+    <span class="mini-icon peach"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span>
+    <strong>{{ urgentCount }}</strong><span>món cần dùng sớm</span><span class="overview-link">Xem hạn sử dụng <span aria-hidden="true">→</span></span>
+  </a>
+  <article class="calorie-card"><div class="card-heading"><div><span class="eyebrow">{{ calorieTarget === null ? 'ĐANG HOÀN THIỆN' : 'MỤC TIÊU CỦA BẠN' }}</span><h2>{{ calorieTarget === null ? 'Thực đơn và năng lượng' : 'Năng lượng hằng ngày' }}</h2></div><span class="soft-icon" aria-hidden="true">✳</span></div>
+    @if (calorieTarget === null) { <p class="intro">Phần đề xuất món ăn và tính năng lượng chưa được triển khai. Bạn có thể thiết lập mục tiêu trước để sẵn sàng sử dụng.</p><button type="button" class="meal-link" (click)="profileRequested.emit()">Thiết lập mục tiêu <span aria-hidden="true">→</span></button> }
+    @else { <div class="calorie-target"><strong>{{ calorieTarget | number: '1.0-0' }}</strong><span>kcal mỗi ngày</span></div><button type="button" class="meal-link" (click)="profileRequested.emit()">Cập nhật mục tiêu <span aria-hidden="true">→</span></button> }
+  </article>
+</section>

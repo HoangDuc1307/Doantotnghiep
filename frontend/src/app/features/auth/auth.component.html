@@ -1,0 +1,66 @@
+<main class="auth-page">
+  <section class="auth-form-panel">
+    <div class="auth-brand">
+      <a class="brand" href="/" aria-label="Bếp Nhà, trang chủ">
+        <span class="brand-mark"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4c-8 0-14 4-14 11a5 5 0 0 0 5 5c7 0 11-6 9-16Z" /><path d="M5 21c2-5 6-8 11-11" /></svg></span>
+        <span><strong>bếp nhà</strong><small>Ăn ngon, sống lành</small></span>
+      </a>
+      <span class="auth-label">BẾP NHÀ · CHĂM SÓC TỪ BỮA ĂN</span>
+    </div>
+
+    <div class="auth-form-wrap">
+      <div class="auth-kicker"><span></span> KHÔNG GIAN CỦA BẠN</div>
+      <h1>
+        @if (authMode === 'login') { Bữa ăn lành mạnh<br />bắt đầu từ đây<span>.</span> }
+        @else { Tạo căn bếp<br />của riêng bạn<span>.</span> }
+      </h1>
+      <p class="auth-intro">
+        @if (authMode === 'login') { Đăng nhập để chăm chút cho căn bếp và những bữa ăn mỗi ngày. }
+        @else { Lưu lại thực phẩm đang có, lên kế hoạch cho những bữa ăn ngon. }
+      </p>
+
+      <form class="auth-form" (submit)="submit($event)">
+        @if (authMode === 'signup') {
+          <label class="auth-field">Tên của bạn<input name="name" autocomplete="name" placeholder="Ví dụ: Minh Anh" required /></label>
+        }
+        <label class="auth-field">Email<input name="email" type="email" autocomplete="email" placeholder="ten@email.com" required /></label>
+        <label class="auth-field">
+          Mật khẩu
+          <span class="password-wrap">
+            <input name="password" [type]="showPassword ? 'text' : 'password'" [attr.autocomplete]="authMode === 'login' ? 'current-password' : 'new-password'" placeholder="Tối thiểu 8 ký tự" minlength="8" required />
+            <button type="button" class="password-toggle" (click)="showPassword = !showPassword">{{ showPassword ? 'Ẩn' : 'Hiện' }}</button>
+          </span>
+        </label>
+        @if (authMode === 'login') {
+          <div class="auth-options">
+            <label class="remember"><input type="checkbox" />Ghi nhớ đăng nhập</label>
+            <button type="button" class="quiet-link" (click)="showResetMessage()">Quên mật khẩu?</button>
+          </div>
+        }
+        <button class="auth-submit" type="submit" [disabled]="busy">
+          {{ busy ? 'Đang mở căn bếp…' : authMode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản' }}
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
+        </button>
+      </form>
+      <p class="auth-switch">
+        {{ authMode === 'login' ? 'Bạn chưa có tài khoản?' : 'Bạn đã có tài khoản?' }}
+        <button (click)="toggleMode()">{{ authMode === 'login' ? 'Đăng ký' : 'Đăng nhập' }}</button>
+      </p>
+      <div class="auth-note">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4c-8 0-14 4-14 11a5 5 0 0 0 5 5c7 0 11-6 9-16Z" /><path d="M5 21c2-5 6-8 11-11" /></svg>
+        <span>Tài khoản được bảo vệ · Dữ liệu kho riêng của bạn.</span>
+      </div>
+    </div>
+    <footer class="auth-footer">© 2026 Bếp Nhà <span>•</span> Ăn ngon, sống lành</footer>
+  </section>
+
+  <aside class="auth-art" aria-label="Minh họa bữa ăn tươi ngon">
+    <div class="art-topline"><span>GHI CHÚ CĂN BẾP SỐ 01</span><span>ĂN CHẬM · SỐNG LÀNH</span></div>
+    <div class="art-copy"><span class="art-overline">MỖI NGÀY, MỘT CHÚT TƯƠI MỚI</span><p>“Bữa cơm ngon<br />bắt đầu từ điều<br /><em>mình đang có.</em>”</p><span class="art-caption">Chăm chút nguyên liệu, thương mình từ bên trong.</span></div>
+    <div class="plate-art" aria-hidden="true">
+      <div class="plate plate-outer"><div class="plate plate-inner"><div class="food-leaf leaf-a"></div><div class="food-leaf leaf-b"></div><div class="food-leaf leaf-c"></div><div class="food-tomato tomato-a"></div><div class="food-tomato tomato-b"></div><div class="food-carrot"></div><div class="food-pea pea-a"></div><div class="food-pea pea-b"></div><div class="food-pea pea-c"></div><div class="food-herb"></div></div></div>
+      <span class="plate-label label-one">tươi mỗi ngày</span><span class="plate-label label-two">từ căn bếp nhỏ</span><span class="meal-sun">✳</span>
+    </div>
+    <div class="art-bottom"><span>THỰC PHẨM · THÓI QUEN · SỨC KHỎE</span><span>HÀ NỘI, VIỆT NAM</span></div>
+  </aside>
+</main>

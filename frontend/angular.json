@@ -1,0 +1,55 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "pantry-pwa-frontend": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "index": "index.html",
+            "tsConfig": "tsconfig.app.json",
+            "polyfills": ["zone.js"],
+            "styles": ["src/auth.css", "src/styles.css"],
+            "assets": [
+              { "glob": "**/*", "input": "public" }
+            ],
+            "outputPath": "dist/pantry-pwa-frontend"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                { "type": "initial", "maximumWarning": "1.5MB", "maximumError": "3MB" },
+                { "type": "anyComponentStyle", "maximumWarning": "25kB", "maximumError": "40kB" }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": { "buildTarget": "pantry-pwa-frontend:build:production" },
+            "development": { "buildTarget": "pantry-pwa-frontend:build:development" }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "10d5803a-4069-42ab-9e18-15e8916c3ba6"
+  }
+}

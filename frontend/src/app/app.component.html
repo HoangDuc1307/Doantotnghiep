@@ -1,0 +1,25 @@
+@if (feedbackMessage) {
+  <div class="global-feedback" [class.success]="feedbackTone === 'success'" [attr.role]="feedbackTone === 'error' ? 'alert' : 'status'" [attr.aria-live]="feedbackTone === 'error' ? 'assertive' : 'polite'"><span>{{ feedbackMessage }}</span><button type="button" (click)="feedbackMessage = ''" [attr.aria-label]="feedbackTone === 'error' ? 'Đóng thông báo lỗi' : 'Đóng thông báo'">×</button></div>
+}
+
+@if (!authenticated) {
+  <app-auth (authenticated)="completeAuthentication($event)" (feedback)="handleAuthFeedback($event)" />
+} @else {
+  <div class="app-shell" id="home">
+    <aside class="sidebar">
+      <a class="brand" href="/" (click)="navigate($event, '/')" aria-label="Bếp Nhà, trang chủ"><span class="brand-mark"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4c-8 0-14 4-14 11a5 5 0 0 0 5 5c7 0 11-6 9-16Z" /><path d="M5 21c2-5 6-8 11-11" /></svg></span><span><strong>bếp nhà</strong><small>Ăn ngon, sống lành</small></span></a>
+      <div class="side-caption">KHÔNG GIAN CỦA BẠN</div>
+      <a class="nav-link" href="/" (click)="navigate($event, '/')" [class.active]="currentPath === '/'" [attr.aria-current]="currentPath === '/' ? 'page' : null"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></svg><span>Tổng quan</span></a>
+      <a class="nav-link" href="/inventory" (click)="navigate($event, '/inventory')" [class.active]="currentPath === '/inventory'" [attr.aria-current]="currentPath === '/inventory' ? 'page' : null"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 2 10h14l2-10H3Z" /><path d="m8 10 4-7 4 7M7 14v3m5-3v3m5-3v3" /></svg><span>Kho thực phẩm</span><span class="nav-count">{{ items.length }}</span></a>
+      <div class="sidebar-note"><span class="note-icon">✳</span><p>Mỗi món ăn ngon bắt đầu từ căn bếp được chăm chút.</p></div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Khu vườn nhỏ của bạn</div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar"><div class="breadcrumb">Bếp Nhà <span>/</span> {{ currentPath === '/inventory' ? 'Kho thực phẩm' : 'Tổng quan' }}</div><div class="profile-chip"><span class="profile-avatar">{{ account?.name?.charAt(0) || 'B' }}</span><span>Xin chào, <strong>{{ account?.name || 'bạn' }}</strong></span><button (click)="logout()">Đăng xuất</button></div></header>
+      @if (currentPath === '/') { <app-dashboard [items]="items" [calorieTarget]="account?.daily_calorie_target ?? null" [showProfileReminder]="showProfileReminder" (inventoryRequested)="navigate($event, '/inventory')" (profileRequested)="openProfile()" (reminderDeferred)="deferProfileReminder()" /> }
+      <app-inventory [hidden]="currentPath !== '/inventory'" (itemsChange)="items = $event" (feedback)="handleInventoryFeedback($event)" />
+      <footer class="page-footer"><span>Được chăm chút từ căn bếp nhỏ <span class="footer-heart">♥</span></span><span>BẾP NHÀ · 01</span></footer>
+    </main>
+  </div>
+  @if (profileDialogOpen && account) { <app-profile [account]="account" [canSkip]="account.daily_calorie_target === null" (profileUpdated)="completeProfile($event)" (dismissed)="closeProfile()" /> }
+}

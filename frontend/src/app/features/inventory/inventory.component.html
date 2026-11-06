@@ -1,0 +1,105 @@
+<section class="inventory-section" id="inventory">
+  <div class="section-heading">
+    <div><span class="eyebrow">NGUYÊN LIỆU CỦA BẠN</span><h2>Căn bếp đang có gì?</h2></div>
+    <button class="primary-button" (click)="openCreate()"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>Thêm thực phẩm</button>
+  </div>
+  <div class="inventory-summary">
+    <div><span class="mini-icon olive"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 2 10h14l2-10H3Z" /><path d="m8 10 4-7 4 7" /></svg></span><span><strong>{{ items.length }} món</strong><small>đang trong kho</small></span></div>
+    <span class="summary-divider"></span>
+    <div><span class="mini-icon peach"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span><span><strong>{{ urgentCount }} món</strong><small>cần dùng sớm</small></span></div>
+    <span class="inventory-hint">Dùng trước những món sắp đến hạn nhé <span>↗</span></span>
+  </div>
+  <div class="toolbar">
+    <label class="search-box">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+      <input [(ngModel)]="query" placeholder="Tìm trong căn bếp…" aria-label="Tìm thực phẩm" />
+      @if (query) { <button (click)="query = ''" aria-label="Xóa nội dung tìm kiếm"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12" /></svg></button> }
+    </label>
+    <label class="sort-control">Sắp xếp
+      <select [(ngModel)]="sortOrder" aria-label="Sắp xếp thực phẩm">
+        <option value="newest">Mới thêm</option>
+        <option value="name">Tên A–Z</option>
+      </select>
+    </label>
+    <span class="result-count">{{ visibleItems.length }} kết quả</span>
+  </div>
+  @if (loading) {
+    <div class="empty-state"><span class="loading-ring"></span><p>Đang mở tủ bếp…</p></div>
+  } @else if (visibleItems.length === 0) {
+    <div class="empty-state">
+      <div class="empty-illustration"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 2 10h14l2-10H3Z" /><path d="m8 10 4-7 4 7" /></svg></div>
+      <h3>{{ query ? 'Chưa tìm thấy nguyên liệu' : 'Tủ bếp đang chờ bạn' }}</h3>
+      <p>{{ query ? 'Thử tìm với tên khác nhé.' : 'Thêm món đầu tiên để bắt đầu theo dõi thực phẩm của bạn.' }}</p>
+      @if (!query) { <button class="text-button" (click)="openCreate()">Thêm thực phẩm đầu tiên <span aria-hidden="true">→</span></button> }
+    </div>
+  } @else {
+    <div class="food-list">
+      @for (item of visibleItems; track item.id; let i = $index) {
+        <article class="food-row">
+          <div [class]="'food-stamp stamp-' + (i % 5)"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4c-8 0-14 4-14 11a5 5 0 0 0 5 5c7 0 11-6 9-16Z" /><path d="M5 21c2-5 6-8 11-11" /></svg></div>
+          <div class="food-name"><strong>{{ item.name }}</strong><span>Thực phẩm trong kho</span></div>
+          <button type="button" class="food-quantity quantity-button" (click)="openQuantityDialog(item)" [attr.aria-label]="'Cập nhật số lượng ' + item.name" title="Cập nhật số lượng"><strong>{{ item.quantity }}</strong><span>{{ item.unit }}</span></button>
+          <div class="food-expiry"><span [class]="'expiry-pill ' + expiryState(item.expiry_date).tone"><span></span>{{ expiryState(item.expiry_date).label }}</span></div>
+          <div class="row-actions">
+            <button (click)="openEdit(item)" [attr.aria-label]="'Sửa ' + item.name" title="Sửa"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg></button>
+            <button (click)="deleteItem(item)" [attr.aria-label]="'Xóa ' + item.name" title="Xóa"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" /></svg></button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+@if (dialogOpen) {
+  <div class="dialog-backdrop" (mousedown)="$event.target === $event.currentTarget && closeDialog()">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" [attr.aria-busy]="saving">
+      <div class="dialog-heading">
+        <div><span class="eyebrow">GHI CHÉP CĂN BẾP</span><h2 id="dialog-title">{{ editing ? 'Sửa thực phẩm' : 'Thêm thực phẩm' }}</h2></div>
+        <button type="button" class="icon-button" (click)="closeDialog()" [disabled]="saving" aria-label="Đóng"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12" /></svg></button>
+      </div>
+      <form novalidate (submit)="saveItem($event)" (pointerdown)="focusFormControl($event)">
+        @if (formError) { <p class="form-error" role="alert">{{ formError }}</p> }
+        <label class="form-field">
+          Tên thực phẩm
+          <input #foodNameInput maxlength="120" required [attr.aria-invalid]="fieldErrors.name ? 'true' : null" [attr.aria-describedby]="fieldErrors.name ? 'food-name-error' : null" [(ngModel)]="form.name" (ngModelChange)="clearFieldError('name')" name="foodName" placeholder="Ví dụ: Cà chua bi" />
+          @if (fieldErrors.name) { <span class="field-error" id="food-name-error" role="alert">{{ fieldErrors.name }}</span> }
+        </label>
+        <div class="form-split">
+          <label class="form-field">
+            Số lượng
+            <input required type="text" inputmode="decimal" maxlength="11" pattern="[0-9]+([.,][0-9]{1,2})?" [attr.aria-invalid]="fieldErrors.quantity ? 'true' : null" [attr.aria-describedby]="fieldErrors.quantity ? 'food-quantity-error' : null" (focus)="selectInputText($event)" [(ngModel)]="form.quantity" (ngModelChange)="clearFieldError('quantity')" name="quantity" placeholder="Ví dụ: 2 hoặc 0,5" />
+            @if (fieldErrors.quantity) { <span class="field-error" id="food-quantity-error" role="alert">{{ fieldErrors.quantity }}</span> }
+          </label>
+          <label class="form-field">
+            Đơn vị
+            <input type="text" list="food-unit-options" maxlength="30" required [attr.aria-invalid]="fieldErrors.unit ? 'true' : null" [attr.aria-describedby]="fieldErrors.unit ? 'food-unit-error' : null" (focus)="selectInputText($event)" [(ngModel)]="form.unit" (ngModelChange)="clearFieldError('unit')" name="unit" placeholder="Gõ hoặc chọn đơn vị" />
+            @if (fieldErrors.unit) { <span class="field-error" id="food-unit-error" role="alert">{{ fieldErrors.unit }}</span> }
+            <datalist id="food-unit-options">@for (unit of units; track unit) { <option [value]="unit">{{ unit }}</option> }</datalist>
+          </label>
+        </div>
+        <label class="form-field">Hạn sử dụng <span class="optional-label">(có thể bổ sung sau)</span><input type="date" [(ngModel)]="form.expiry_date" name="expiry" /></label>
+        <div class="form-note"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4c-8 0-14 4-14 11a5 5 0 0 0 5 5c7 0 11-6 9-16Z" /><path d="M5 21c2-5 6-8 11-11" /></svg><span>Thông tin chưa có có thể để trống — bạn bổ sung sau cũng được.</span></div>
+        <div class="dialog-actions">@if (editing) { <button type="button" class="secondary-button" (click)="duplicateItem()" [disabled]="saving">Nhập lại món này</button> }<button type="button" class="secondary-button" (click)="closeDialog()" [disabled]="saving">Để sau</button><button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Lưu vào kho' }}</button></div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (quantityDialogItem) {
+  <div class="dialog-backdrop" (mousedown)="$event.target === $event.currentTarget && closeQuantityDialog()">
+    <section class="dialog quantity-dialog" role="dialog" aria-modal="true" aria-labelledby="quantity-dialog-title" [attr.aria-busy]="savingQuantity">
+      <div class="dialog-heading">
+        <div><span class="eyebrow">CẬP NHẬT NHANH</span><h2 id="quantity-dialog-title">Còn lại bao nhiêu?</h2></div>
+        <button type="button" class="icon-button" (click)="closeQuantityDialog()" [disabled]="savingQuantity" aria-label="Đóng"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12" /></svg></button>
+      </div>
+      <p class="quantity-dialog-item">{{ quantityDialogItem.name }} · {{ quantityDialogItem.unit }}</p>
+      <form novalidate (submit)="saveQuickQuantity($event)">
+        <label class="form-field">Số lượng còn lại
+          <input #quickQuantityInput required type="text" inputmode="decimal" maxlength="11" [attr.aria-invalid]="quickQuantityError ? 'true' : null" [attr.aria-describedby]="quickQuantityError ? 'quick-quantity-error' : null" (focus)="selectInputText($event)" [(ngModel)]="quickQuantity" name="quickQuantity" placeholder="Ví dụ: 0,5" />
+          @if (quickQuantityError) { <span class="field-error" id="quick-quantity-error" role="alert">{{ quickQuantityError }}</span> }
+        </label>
+        <div class="dialog-actions"><button type="button" class="secondary-button" (click)="closeQuantityDialog()" [disabled]="savingQuantity">Hủy</button><button type="submit" class="primary-button" [disabled]="savingQuantity">{{ savingQuantity ? 'Đang lưu…' : 'Lưu số lượng' }}</button></div>
+      </form>
+    </section>
+  </div>
+}
