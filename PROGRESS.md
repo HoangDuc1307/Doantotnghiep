@@ -156,6 +156,12 @@ Trạng thái dưới đây được đối chiếu với mã nguồn ngày 2026
 - Đưa điều hướng về URL thật `/` và `/inventory` bằng History API, hỗ trợ Back/Forward và tab mới; tách nội dung Tổng quan với Kho thực phẩm.
 - Bổ sung request logger chỉ ghi method/path/status/thời gian và phản hồi lỗi chung cho lỗi đăng nhập, tải kho, CRUD, khôi phục phiên và lỗi JavaScript chưa xử lý.
 
+### 2026-11-06 — khởi tạo repository GitHub
+
+- Khởi tạo Git tại thư mục gốc và đẩy commit đầu tiên `eb57127` lên nhánh `main` của `https://github.com/HoangDuc1307/Doantotnghiep`.
+- Commit gồm mã nguồn `backend`, `frontend`, tài liệu báo cáo và tài liệu dự án. `.gitignore` đã loại cache Angular, dependencies, `.env`, log và các tệp sinh tự động/cấu hình cục bộ của công cụ phát triển.
+- Đã kiểm tra trước khi commit: repository đích chưa có nhánh, danh sách tệp staged không gồm các thư mục bị ignore, và không thấy mẫu secret phổ biến. Chưa chạy lại build hay test trong phiên chỉ khởi tạo repository này.
+
 ## Bàn giao phiên tiếp theo
 
 - Team Lead chủ động cập nhật `PROGRESS.md` sau mỗi phiên đáng kể theo quy tắc ở **Tổng quan dự án**, không cần chờ nhắc lại.
