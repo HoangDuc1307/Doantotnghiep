@@ -6,6 +6,8 @@ export interface InventoryItem {
   quantity: number;
   unit: string;
   expiry_date: string | null;
+  food_id: string | null;
+  food_description?: string | null;
   created_at: string;
 }
 
@@ -14,6 +16,13 @@ export interface InventoryInput {
   quantity: number;
   unit: string;
   expiry_date: string | null;
+  food_id: string | null;
+}
+
+export interface NutritionFood {
+  id: string;
+  description: string;
+  energy_kcal_per_100g: number;
 }
 
 export interface Account {
@@ -29,6 +38,33 @@ export interface ProfileInput {
   height_cm: number | null;
   weight_kg: number | null;
   daily_calorie_target: number;
+}
+
+export interface MealSuggestion {
+  suggestion: string;
+  model: string;
+  totalKcal: number | null;
+  targetKcal: number;
+  differenceKcal: number | null;
+  confidence: 'estimated' | 'partial';
+  unverifiedItems: UnverifiedItem[];
+  meals: Meal[];
+}
+
+export interface UnverifiedItem { id: string; name: string; }
+
+export interface MealIngredient {
+  name: string;
+  quantity: number;
+  unit: string;
+  grams: number;
+  kcal: number | null;
+}
+
+export interface Meal {
+  name: string;
+  ingredients: MealIngredient[];
+  steps: string[];
 }
 
 interface AuthResponse { user: Account; token: string; }
@@ -53,6 +89,8 @@ export class InventoryService {
   }
   logout(): void { localStorage.removeItem(this.tokenKey); }
   list(): Promise<InventoryItem[]> { return this.request('/inventory'); }
+  searchFoods(query: string): Promise<NutritionFood[]> { return this.request(`/foods?q=${encodeURIComponent(query)}`); }
+  selectFood(sourceId: string): Promise<NutritionFood> { return this.request(`/foods/${encodeURIComponent(sourceId)}/select`, { method: 'POST' }); }
   create(item: InventoryInput): Promise<InventoryItem> {
     return this.request('/inventory', { method: 'POST', body: JSON.stringify(item) });
   }
@@ -60,6 +98,9 @@ export class InventoryService {
     return this.request(`/inventory/${id}`, { method: 'PATCH', body: JSON.stringify(item) });
   }
   remove(id: string): Promise<void> { return this.request(`/inventory/${id}`, { method: 'DELETE' }); }
+  suggestMeals(): Promise<MealSuggestion> {
+    return this.request('/meal-plans/suggestions', { method: 'POST' });
+  }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     let response: Response;

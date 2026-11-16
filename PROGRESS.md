@@ -27,7 +27,9 @@ Trạng thái dưới đây được đối chiếu với mã nguồn ngày 2026
 - Kho thực phẩm có thêm sắp xếp theo món mới thêm hoặc tên A–Z, nhập lại một món đã có với số lượng mặc định 1 và không sao chép hạn dùng, cùng hộp cập nhật nhanh số lượng. Thông báo thao tác thành công/lỗi được phân biệt cho trình đọc màn hình.
 - Sau đăng ký, giao diện mở thiết lập hồ sơ mục tiêu; người dùng có thể bỏ qua. Khi chưa có mục tiêu calo, Tổng quan nhắc một lần mỗi 24 giờ theo tài khoản trên trình duyệt đó. Mục tiêu đã lưu hiển thị ở Tổng quan và có thể cập nhật; chiều cao/cân nặng không chặn người dùng.
 - PWA có `manifest.webmanifest` và service worker cache vỏ giao diện đã tải. Chỉnh sửa hay đồng bộ dữ liệu kho khi offline chưa có.
-- Chưa có mã nguồn cho: quên/đặt lại mật khẩu (giao diện chỉ báo chưa triển khai), QR, nhập giọng nói, tra cứu sản phẩm, dữ liệu dinh dưỡng có cấu trúc, tính năng lượng tiêu thụ thực tế và đề xuất thực đơn. Mục tiêu calo hiện chỉ được lưu, chưa dùng để sinh thực đơn hoặc đưa ra khuyến nghị sức khỏe.
+- Dữ liệu USDA Foundation Foods: bảng `foods`, importer có thể chạy lại an toàn và API tìm kiếm để người dùng xác nhận thực phẩm. Bản nguồn 10/2026 đã nhập 95 bản ghi có kcal/100 g; tệp nguồn cục bộ bị Git ignore.
+- Gợi ý bữa ăn AI: `POST /api/meal-plans/suggestions` yêu cầu bearer token và dùng tối đa 15 thực phẩm có hạn gần nhất thuộc tài khoản. Model mặc định là `gpt-6-sol`; AI trả tối đa ba bữa theo mã bản ghi kho và gram khẩu phần ước tính, còn backend tính kcal từ dữ liệu dinh dưỡng đã lưu. Trước khi gọi AI, Dashboard tự thử ghép tối đa ba thực phẩm chưa liên kết với kết quả DLPL gần nhất; thực đơn luôn ghi rõ kcal là ước tính, không phải số đo hay tư vấn y tế.
+- Chưa có mã nguồn cho: quên/đặt lại mật khẩu (giao diện chỉ báo chưa triển khai), QR, nhập giọng nói, tra cứu sản phẩm, dữ liệu dinh dưỡng có cấu trúc, tính năng lượng tiêu thụ thực tế, lưu/xem kế hoạch thực đơn hay đề xuất có năng lượng được kiểm chứng. Mục tiêu calo được gửi như ngữ cảnh cho gợi ý AI nhưng không được dùng để khẳng định thực đơn đáp ứng mục tiêu hoặc đưa ra khuyến nghị sức khỏe.
 
 ### Quyết định kỹ thuật còn hiệu lực
 
@@ -52,9 +54,96 @@ Trạng thái dưới đây được đối chiếu với mã nguồn ngày 2026
 - Đã kiểm thử giao diện hồ sơ qua browser automation ở viewport 360 × 640 ngày 2026-11-04; chưa kiểm thử trên điện thoại thật. Nhắc “Nhắc tôi sau” hiện dùng `localStorage` theo tài khoản và trình duyệt, nên không đồng bộ giữa các thiết bị.
 - Build production Angular từng không hoàn tất ngày 2026-10-26 vì môi trường không tải được Google Fonts; chưa có bằng chứng kiểm tra lại sau đó.
 - Việc kiểm thử trực tiếp trên điện thoại người dùng vẫn còn mở. `agent-browser` đã khả dụng và đã được dùng để kiểm thử trình duyệt trong phiên 2026-11-04.
+- Gợi ý AI chưa có dữ liệu dinh dưỡng có cấu trúc trong workspace, nên không được dùng để tính hoặc xác nhận năng lượng. Free tier MộtAPI có thể thay đổi, chậm, lỗi hoặc bị dừng mà không báo trước; backend trả lỗi có kiểm soát khi dịch vụ không khả dụng.
+- USDA Foundation Foods chỉ có 95 bản ghi có trường kcal trong bản tải 10/2026; phạm vi chưa bao phủ toàn bộ thực phẩm tại Việt Nam. Thực phẩm chưa được người dùng chọn USDA, hoặc dùng đơn vị khác g/kg, không được đưa vào phép tính kcal.
+- Dashboard hiện tự lưu kết quả DLPL đầu tiên cho tối đa ba thực phẩm chưa liên kết trước khi tạo gợi ý. Điều này khác với quyết định chỉ tự ghép khi tên chuẩn hóa khớp đúng duy nhất; cần sửa trước khi coi kcal ước tính là đáng tin cậy.
 - Các mục lịch sử 2026-10-26 nói về thay đổi trực tiếp trong `app.component.*` là đúng tại thời điểm đó, nhưng không còn là vị trí mã hiện tại sau refactor 2026-11-02; chức năng tương ứng hiện thuộc các feature component.
 
 ## Kết quả kiểm thử
+
+### Sửa lỗi 502 khi tạo gợi ý bữa ăn — 2026-11-13
+
+- Nguyên nhân đã tái hiện: MộtAPI nhận request `deepseek-v4-flash` thành công nhưng model chỉ trả `reasoning_content`, còn `choices[0].message.content` rỗng. Backend từ chối đúng phản hồi rỗng này và trả HTTP 502.
+- Đổi model mặc định, `.env.example` và cấu hình phát triển cục bộ sang `gpt-6-luna`; không đổi prompt, route, xác thực, dữ liệu kho hoặc schema. Một lần gọi với thực phẩm giả chỉ trong bộ nhớ trả 1 bữa hợp lệ từ `gpt-6-luna`.
+- `npm.cmd test` trong `backend`: 7/7 thành công; `node --check src/services/ai.service.js` thành công. Chạy tạm `npm.cmd run dev` xác nhận health HTTP 200 với database connected; `POST /api/meal-plans/suggestions` thiếu bearer trả 401 đúng dự kiến. Server kiểm thử đã dừng để không chiếm cổng của phiên phát triển người dùng; chưa chạy luồng UI có đăng nhập lại sau sửa.
+
+### Ép định dạng JSON cho gợi ý AI — 2026-11-13
+
+- Bổ sung `response_format: { type: 'json_object' }` và `temperature: 0` vào request MộtAPI. Thay đổi buộc model trả JSON, giảm việc model thêm văn bản ngoài cấu trúc hoặc sinh phương án không lặp lại.
+- Kiểm thử trực tiếp `generateMealSuggestion` với thực phẩm giả trong bộ nhớ trả 2 bữa hợp lệ từ `gpt-6-luna` trong 5.228 giây. Backend `node --watch` đã tự khởi động lại sau thay đổi; `npm.cmd test` đạt 7/7 và syntax check thành công.
+
+### Giảm độ trễ gợi ý AI — 2026-11-13
+
+- Log runtime ghi nhận một yêu cầu gợi ý thành công mất 26.175 giây. Đo lại với 15 thực phẩm giả: `gpt-6-luna` mất 28.561 giây, nên độ trễ nằm ở model chứ không phải route hay PostgreSQL.
+- Chuyển model mặc định sang `gpt-6-sol`, chỉ gửi 15 món theo thứ tự hạn gần nhất, giới hạn mỗi món tối đa 5 nguyên liệu/4 bước và phản hồi tối đa 500 token. Cùng payload 15 món trả 3 bữa hợp lệ trong 11.813 giây; `npm.cmd test` backend đạt 7/7, syntax check service/controller thành công.
+
+### Đối chiếu dinh dưỡng bán tự động — 2026-11-13
+
+- Sau khi AI trả gợi ý chưa đủ kcal, Dashboard tự tìm tối đa ba kết quả DLPL cho từng thực phẩm. Tự lưu chỉ khi tên sau chuẩn hóa khớp đúng duy nhất; tên mơ hồ hiển thị tối đa ba lựa chọn để xác nhận một chạm hoặc cho phép tìm tên khác. Lựa chọn được lưu bằng API hiện có nên tái sử dụng ở những lần sau.
+- Không tự quy đổi quả/hộp/ml sang gram. Nếu món đã liên kết dữ liệu nhưng chưa dùng g/kg, giao diện dẫn người dùng về Kho thực phẩm để sửa số lượng, rồi tạo lại gợi ý.
+- `npm.cmd run build -- --configuration development` trong `frontend` thành công. Chưa kiểm thử DLPL và thao tác xác nhận bằng tài khoản thật trong trình duyệt.
+
+### Thực đơn kcal ước tính không yêu cầu gram — 2026-11-13
+
+- Đổi contract AI từ số lượng/đơn vị kho sang `grams` khẩu phần do AI đề xuất. Backend vẫn kiểm tra mã kho, gram dương và giới hạn 1.500 g mỗi nguyên liệu, sau đó tự tính kcal từ dữ liệu có cấu trúc. Số lượng kho nay chỉ biểu thị thực phẩm đang có, không chặn thực đơn khi người dùng nhập quả/củ/hộp.
+- Dashboard tự thử ghép và lưu tối đa ba thực phẩm chưa có dữ liệu bằng kết quả DLPL gần nhất trước khi gọi AI; thất bại ghép chỉ hạ mức hoàn chỉnh kcal, không chặn gợi ý. Giao diện gọi kết quả là kcal ước tính và hiển thị gram AI đề xuất thay vì buộc người dùng tự đổi đơn vị.
+- `npm.cmd test` backend đạt 7/7, syntax check backend và Angular development build thành công. Gọi trực tiếp `generateMealSuggestion` với trứng gà/su su/thịt ba chỉ cùng mục tiêu 700 kcal trả 2 món, 691 kcal ước tính, trong 9.543 giây. Chưa kiểm thử toàn bộ luồng DLPL với tài khoản thật qua trình duyệt.
+
+### Hiệu chỉnh kcal ước tính theo mục tiêu — 2026-11-13
+
+- Kiểm thử trình duyệt do người dùng thực hiện xác nhận luồng tự ghép DLPL → AI → tính kcal chạy được, nhưng một thực đơn 880 kcal lệch 620 kcal so với mục tiêu 1.500 kcal.
+- Siết prompt: AI phải dùng `energyKcalPer100g` để chọn khẩu phần gram trong khoảng ±15% mục tiêu khi đủ dữ liệu, nhưng không được tự trả kcal; backend vẫn tự tính lại. Gọi trực tiếp với trứng gà/su su/thịt ba chỉ và mục tiêu 1.500 kcal trả 1.417 kcal, chênh 83 kcal (5,5%), trong 11.577 giây. `npm.cmd test` backend đạt 7/7.
+
+### Định lượng khẩu phần thân thiện — 2026-11-13
+
+- AI nay trả song song quantity/unit để hiển thị và gram nội bộ để tính kcal. Prompt ưu tiên quả/củ/bó/hộp cho trứng, rau, củ, quả và đơn vị đếm; thịt, cá, gà hiển thị g. Backend xác thực cả quantity/unit/grams nhưng chỉ dùng gram để tính kcal.
+- Gọi trực tiếp với trứng gà đơn vị quả, su su đơn vị củ và thịt ba chỉ đơn vị g trả `2 quả`, `1 củ` và thịt theo g; backend tính 1.585 kcal so với mục tiêu 1.500 kcal. `npm.cmd test` backend đạt 7/7 và Angular development build thành công.
+
+### Sửa CORS cho `127.0.0.1` — 2026-11-12
+
+- Bổ sung `http://127.0.0.1:4200` vào `FRONTEND_ORIGINS` cục bộ và `.env.example`; vẫn giữ whitelist, không dùng wildcard.
+- `npm.cmd test` trong `backend`: 5/5 thành công. Regression test CORS xác nhận `localhost`, `127.0.0.1`, IP LAN được cấu hình và request không có Origin đều được chấp nhận; origin không cấu hình vẫn bị từ chối.
+
+### Tích hợp gợi ý bữa ăn AI — 2026-11-12
+
+- Thêm cấu hình MộtAPI chỉ ở backend qua `MOTAPIS_API_KEY`, `MOTAPIS_BASE_URL` và `MOTAPIS_MODEL`; khóa không nằm trong frontend, README hay `PROGRESS.md`. Dùng native `fetch` của Node 24 và không thêm dependency.
+- `npm.cmd test` trong `backend`: 5/5 thành công, gồm test mới xác nhận prompt coi kho là dữ liệu và cấm khẳng định kcal/dinh dưỡng chưa kiểm chứng. `node --check` cho server, route, controller và service AI thành công. Frontend development build thành công.
+- Service backend gọi `gpt-6-luna` qua MộtAPI với dữ liệu thử tối thiểu và nhận được gợi ý hợp lệ. Endpoint `/api/meal-plans/suggestions` không có bearer token trả HTTP 401. Không tạo hoặc thay đổi dữ liệu PostgreSQL để kiểm thử endpoint có xác thực.
+- Chưa kiểm thử UI bằng browser automation: `agent-browser` không thể tự khởi chạy Chrome do Windows Application Control chặn tệp Chrome của công cụ. Không coi development build là xác minh tương tác nút hay hiển thị gợi ý.
+
+### Dữ liệu USDA và thực đơn có kcal kiểm chứng — 2026-11-12
+
+- Tải Foundation Foods JSON 10/2026 từ USDA FoodData Central, áp dụng schema không phá hủy và nhập 95 bản ghi có năng lượng kcal/100 g. Kiểm tra đếm trực tiếp PostgreSQL xác nhận 95 bản ghi.
+- Thêm API tìm USDA, lựa chọn xác nhận ở form kho, liên kết `inventory_items.food_id`, và chỉ nhận g/kg cho tính toán. AI buộc trả JSON có foodId/gram; server từ chối mã không tồn tại, lượng âm hoặc vượt kho rồi tự tính kcal từ dữ liệu USDA.
+- Gọi thử `gpt-6-luna` bằng dữ liệu USDA riêng: nhận 2 món, backend tính 2.741 kcal so với mục tiêu 3.161 kcal, chênh 420 kcal. `npm.cmd test` backend đạt 6/6; Angular development build thành công. Browser automation vẫn bị Windows Application Control chặn.
+
+### Gợi ý từ kho không yêu cầu liên kết USDA — 2026-11-12
+
+- Bỏ điều kiện chặn gợi ý khi thực phẩm chưa chọn USDA hoặc không dùng g/kg. AI nhận toàn bộ kho và backend vẫn kiểm tra số lượng/đơn vị không vượt dữ liệu người dùng.
+- Khi một phương án có nguyên liệu thiếu đối chiếu USDA hoặc không quy đổi được sang gam, `totalKcal` và độ chênh trả về `null`, giao diện nêu rõ các món khiến kcal chưa kiểm chứng. Khi toàn bộ nguyên liệu đủ dữ liệu, backend vẫn tính kcal như trước.
+- Kiểm thử trực tiếp với trứng/cà chua đơn vị quả chưa liên kết USDA: AI trả 3 món, không có tổng kcal và liệt kê đúng hai món chưa kiểm chứng. Backend test 6/6 và Angular development build thành công.
+
+### Sửa hiển thị gợi ý AI sau HTTP 200 — 2026-11-12
+
+- Nguyên nhân: Dashboard cập nhật kết quả Promise nhưng thiếu `ChangeDetectorRef.markForCheck()`, trong khi các component bất đồng bộ khác của dự án đã dùng cơ chế này.
+- Thêm đánh dấu render khi bắt đầu/kết thúc yêu cầu và sửa chú thích kcal để khớp luồng USDA tùy chọn. Angular development build thành công; browser automation chưa khả dụng do Windows Application Control chặn Chrome của công cụ.
+
+### Tối ưu tốc độ và giao diện gợi ý — 2026-11-12
+
+- Đo trực tiếp cùng dữ liệu kiểm thử: `deepseek-v4-flash` trả thực đơn hợp lệ trong 4.733 giây, thay cho lần gọi `gpt-6-luna` khoảng 19,5 giây. Đặt Flash làm mặc định, giới hạn tối đa ba bữa và 700 output token.
+- Thay văn bản thô bằng thẻ bữa ăn có tên món, nguyên liệu/số lượng và danh sách bước nấu. Backend test 6/6 và Angular development build thành công; chưa kiểm thử click trực tiếp do hạn chế browser automation.
+
+### Dời đối chiếu USDA sang sau gợi ý — 2026-11-12
+
+- Bỏ picker USDA khỏi form thêm/sửa kho, nên luồng nhập thực phẩm trở lại chỉ có tên, lượng, đơn vị và hạn dùng. Chỉnh sửa số lượng vẫn giữ liên kết USDA đã có.
+- Khi kcal chưa kiểm chứng, Dashboard tự tìm tối đa ba dữ liệu Việt Nam cho từng món AI dùng. Chỉ khi tên chuẩn hóa khớp chính xác duy nhất hệ thống mới tự lưu đối chiếu; các trường hợp còn lại yêu cầu người dùng xác nhận một chạm và lưu lựa chọn cho những lần sau. Món đã có dữ liệu nhưng dùng đơn vị khác g/kg được nhắc đổi đơn vị trước khi tạo lại gợi ý để tính kcal.
+- Backend test 6/6 và Angular development build thành công. Chưa kiểm thử click trực tiếp do Windows Application Control chặn browser automation.
+
+### Tích hợp dữ liệu dinh dưỡng Việt Nam — 2026-11-13
+
+- Thay luồng tra cứu USDA bằng DLPL API: dữ liệu thuộc Bảng thành phần thực phẩm Việt Nam của Viện Dinh dưỡng Quốc gia, tìm theo tên tiếng Việt và trả kcal/100 g.
+- Không tải hàng loạt do gói Free giới hạn 5 trang/truy vấn; backend chỉ lấy lại và lưu cục bộ bản ghi người dùng chọn, nên không tin kcal do trình duyệt gửi lên. Schema `foods` có thêm `source_id` để lưu nhiều nguồn mà vẫn giữ các liên kết cũ.
+- Đã gọi DLPL thành công, áp dụng migration PostgreSQL và kiểm thử tìm/lưu một bản ghi đã xác minh. Backend test 7/7 và Angular development build thành công. Cần chạy lại backend đang mở để nhận biến `DLPL_API_KEY` và mã mới.
 
 ### Sửa CORS khi chạy qua IP LAN — 2026-11-05
 
@@ -161,6 +250,93 @@ Trạng thái dưới đây được đối chiếu với mã nguồn ngày 2026
 - Khởi tạo Git tại thư mục gốc và đẩy commit đầu tiên `eb57127` lên nhánh `main` của `https://github.com/HoangDuc1307/Doantotnghiep`.
 - Commit gồm mã nguồn `backend`, `frontend`, tài liệu báo cáo và tài liệu dự án. `.gitignore` đã loại cache Angular, dependencies, `.env`, log và các tệp sinh tự động/cấu hình cục bộ của công cụ phát triển.
 - Đã kiểm tra trước khi commit: repository đích chưa có nhánh, danh sách tệp staged không gồm các thư mục bị ignore, và không thấy mẫu secret phổ biến. Chưa chạy lại build hay test trong phiên chỉ khởi tạo repository này.
+
+### 2026-11-09 — rà soát tài liệu và mã nguồn
+
+- Đối chiếu `AGENTS.md`, `README.md`, `PROGRESS.md`, báo cáo DOCX trong `docs` và mã nguồn hiện tại. Xác nhận phạm vi đang có: xác thực bearer HMAC, hồ sơ gồm chiều cao/cân nặng tùy chọn và mục tiêu kcal do người dùng nhập, CRUD kho theo chủ sở hữu, PWA chỉ cache giao diện. QR, giọng nói, tra cứu sản phẩm, dữ liệu dinh dưỡng tích hợp, AI và thực đơn chưa có mã nguồn/route/schema tương ứng.
+- Báo cáo DOCX là tài liệu phân tích–thiết kế chưa hoàn tất: mục lục có Chương 3 và kết luận nhưng nội dung dừng ở phần thiết kế CSDL; cần hoàn thiện các phần xây dựng, kiểm thử, kết luận và ma trận phân biệt **đã triển khai** với **thiết kế mở rộng** trước khi dùng làm báo cáo kết quả. Các mô tả `nutrition_profiles`, `foods`, `recipes`, `meal_plans` là thiết kế; mã hiện lưu ba trường hồ sơ ngay trong `users`.
+- Báo cáo nêu bộ USDA đã chuẩn hóa nhưng tệp CSV/JSON không có trong workspace; liên kết là tài sản ngoài repo. Cần bổ sung tài sản và bằng chứng tái lập, hoặc ghi rõ điều này trước khi khẳng định dữ liệu sẵn sàng tích hợp.
+- Kiểm tra ngày 2026-11-09: `npm.cmd test` trong `backend` đạt 4/4; `npm.cmd run build -- --configuration development` trong `frontend` thành công. Không chạy browser/PWA runtime trong phiên này. Kiểm tra Git không thực hiện được vì thư mục `.git` thuộc tài khoản Windows khác và Git báo `dubious ownership`; không thay đổi cấu hình Git.
+
+### 2026-11-12 — tích hợp gợi ý bữa ăn qua MộtAPI
+
+- Bổ sung service, controller và route backend cho `POST /api/meal-plans/suggestions`; endpoint xác thực người dùng, đọc kho thuộc sở hữu của họ và mục tiêu năng lượng đã lưu. MộtAPI chỉ nhận tên, lượng, đơn vị và hạn sử dụng của tối đa 50 thực phẩm; không gửi email, token hay định danh người dùng.
+- Thêm nút tạo gợi ý ở Dashboard cùng trạng thái chờ/lỗi và ghi chú rõ kết quả không phải tính toán dinh dưỡng. Không thêm schema, nguồn USDA, QR, giọng nói, lưu kế hoạch thực đơn hay tự trừ kho.
+- Cập nhật `.env.example` và README cho cấu hình MộtAPI. Giá trị khóa thật chỉ ở `backend/.env` đã bị Git ignore; không ghi lại giá trị trong tài liệu.
+
+### 2026-11-12 — sửa CORS khi mở frontend bằng `127.0.0.1`
+
+- Sửa lỗi trình duyệt có thể gửi `POST /api/auth/login` thành công nhưng chặn phản hồi khi frontend mở tại `http://127.0.0.1:4200`: thêm origin này vào whitelist cục bộ và cấu hình mẫu.
+- Mở rộng regression test; không thay đổi cơ chế CORS, contract API hoặc dependency.
+
+### 2026-11-12 — dữ liệu USDA và thực đơn tính kcal tại backend
+
+- Bổ sung bảng `foods`, importer Foundation Foods, API tìm kiếm và trường liên kết tùy chọn trong kho. Người dùng phải chọn kết quả USDA; không tự ghép tên thực phẩm.
+- Đổi gợi ý AI sang dữ liệu có cấu trúc gồm món, nguyên liệu theo `foodId`/gram và bước nấu. Backend kiểm tra tổng gram không vượt kho, sau đó tính kcal từ `energy_kcal_per_100g` của USDA, không dùng kcal do AI tạo.
+- Không thêm công thức/lưu thực đơn, quy đổi hộp–quả–ml hoặc dữ liệu thực phẩm Việt Nam. Các tệp USDA lớn bị Git ignore và có hướng dẫn tải/nhập lại trong README.
+
+### 2026-11-12 — cho phép gợi ý từ toàn bộ kho
+
+- Theo phản hồi nghiệp vụ, USDA là dữ liệu đối chiếu chứ không phải điều kiện bắt buộc để AI dùng một món trong kho. Sửa controller, service và Dashboard theo hai trạng thái kcal: đã kiểm chứng hoặc chưa đủ dữ liệu.
+- Không tự quy đổi hay suy đoán kcal cho thực phẩm chưa đối chiếu; nhờ đó luồng gợi ý không bị trả HTTP 400 chỉ vì người dùng nhập theo quả/hộp/ml.
+
+### 2026-11-12 — sửa Dashboard không render gợi ý đã nhận
+
+- Sửa component Dashboard gọi `markForCheck()` sau yêu cầu gợi ý bất đồng bộ. Backend từng trả HTTP 200 nhưng UI không hiện món/cách nấu do thay đổi trạng thái không kích hoạt render.
+
+### 2026-11-12 — tối ưu tốc độ và trình bày thực đơn
+
+- Chuyển model mặc định MộtAPI sang `deepseek-v4-flash` sau phép đo trực tiếp, giảm giới hạn phản hồi và giữ timeout bảo vệ. Không thêm model fallback hoặc dependency.
+- Giao diện Dashboard hiện trình bày bữa ăn, nguyên liệu và các bước nấu bằng card thay vì chuỗi văn bản nguyên khối.
+
+### 2026-11-12 — giảm thao tác nhập kho cho đối chiếu kcal
+
+- Theo quyết định UX, dời tra cứu/chọn USDA từ form kho sang phần theo dõi tùy chọn sau khi AI trả thực đơn. Không bắt người dùng nhập thêm trước khi có gợi ý.
+- Không tự ghép dữ liệu USDA; lựa chọn vẫn do người dùng xác nhận để bảo toàn tính đúng đắn của kcal.
+
+### 2026-11-13 — sửa lỗi 502 từ model gợi ý bữa ăn
+
+- Xác minh trực tiếp MộtAPI, API key và endpoint vẫn hoạt động; lỗi xuất phát từ `deepseek-v4-flash` chỉ trả phần suy luận trong giới hạn phản hồi, không có nội dung JSON mà ứng dụng yêu cầu.
+- Đổi default và cấu hình phát triển sang `gpt-6-luna`, là model đã trả phương án đúng cấu trúc với cùng payload thử. Không thêm dependency hoặc fallback tự động; backend đã được chạy tạm bằng `npm.cmd run dev` để xác nhận health/database rồi dừng, nhường cổng cho phiên phát triển người dùng.
+
+### 2026-11-13 — ổn định định dạng phản hồi AI
+
+- MộtAPI hỗ trợ response JSON kiểu OpenAI; thêm yêu cầu JSON object và temperature bằng 0 cho lời gọi gợi ý. Kiểm tra trực tiếp xác nhận phản hồi hợp lệ trong khoảng 5 giây thay vì chỉ đổi model hoặc nới timeout.
+
+### 2026-11-13 — giảm thời gian tạo gợi ý AI
+
+- Sau log runtime 26 giây, so sánh cùng payload cho thấy `gpt-6-sol` nhanh hơn `gpt-6-luna` (11.813 giây so với 28.561 giây). Đổi cấu hình cục bộ, default, mẫu cấu hình và README sang `gpt-6-sol`.
+- Giảm ngữ cảnh được gửi AI từ tối đa 50 xuống 15 thực phẩm có hạn gần nhất, đồng thời giới hạn cấu trúc món/bước để giữ kết quả hữu ích nhưng nhanh hơn. Không thêm fallback, dependency hoặc thay đổi schema.
+
+### 2026-11-13 — đối chiếu dinh dưỡng tự động có xác nhận
+
+- Thay danh sách nút đối chiếu thủ công bằng tìm kiếm tự động sau gợi ý. Chỉ auto-select với một kết quả có tên chuẩn hóa giống hệt tên kho; mọi kết quả gần đúng vẫn cần người dùng chọn để tránh gán nhầm kcal.
+- Không thay API contract hay schema; dùng lại `GET /api/foods`, `POST /api/foods/:sourceId/select` và `PATCH /api/inventory/:id`. Angular development build thành công, còn kiểm thử trình duyệt với dữ liệu DLPL thật là công việc mở.
+
+### 2026-11-13 — chuyển gợi ý sang kcal ước tính
+
+- Theo quyết định UX, người dùng không cần đổi quả/củ/hộp sang gram. AI trả khẩu phần gram ước tính cho thực đơn; backend dùng gram đó cùng dữ liệu dinh dưỡng để tính kcal, luôn gắn nghĩa “ước tính”.
+- Dashboard tự thử ghép ba thực phẩm mới đầu tiên với DLPL trước khi gọi AI và lưu liên kết, nhằm giảm thao tác ở các lần sau. Không thêm schema, dependency hoặc tự tạo giá trị kcal.
+
+### 2026-11-13 — siết khẩu phần AI theo mục tiêu kcal
+
+- Prompt gợi ý nay yêu cầu model dùng năng lượng/100 g trong dữ liệu input để chọn gram trong ngưỡng ±15% mục tiêu. Kiểm thử direct service đạt 1.417/1.500 kcal với dữ liệu thử; backend tiếp tục là nguồn tính kcal cuối cùng.
+
+### 2026-11-13 — hiển thị khẩu phần theo đơn vị tự nhiên
+
+- Giữ gram là dữ liệu nội bộ, còn giao diện hiển thị quả/củ/bó/hộp cho thực phẩm theo đơn vị đếm và g cho thịt, cá, gà. Không thay schema hay buộc người dùng đổi đơn vị kho.
+
+### 2026-11-14 — rà soát nguyên tắc Ponytail
+
+- Rà soát tĩnh toàn bộ backend/frontend theo nguyên tắc thay đổi tối thiểu, tái sử dụng, không thêm dependency và kiểm thử trọng tâm; không thay đổi mã nguồn ứng dụng.
+- Kiến trúc chính gọn và phù hợp: Express tách route/controller/service, Angular dùng service chung, không có dependency rõ ràng là dư thừa. Test backend ngày này đạt 7/7 và Angular development build thành công.
+- Phát hiện cần xử lý: `DashboardComponent.autoMapFoodsForEstimate()` tự chọn kết quả DLPL đầu tiên và lưu liên kết, trái với quy tắc xác nhận/khớp tên chính xác; `styles.css` còn các selector của giao diện dinh dưỡng cũ không có template sử dụng. Đây là nợ kỹ thuật nhỏ, nhưng mục tự ghép là rủi ro đúng đắn dữ liệu cần ưu tiên hơn.
+
+### 2026-11-14 — áp dụng Ponytail cho đối chiếu dinh dưỡng
+
+- Sửa tự ghép DLPL: chỉ lưu khi chính xác một kết quả có tên trùng khớp sau chuẩn hóa Unicode và chữ thường; kết quả gần đúng hay mơ hồ không làm thay đổi kho. Xóa CSS không còn template sử dụng, không thêm dependency, API hay schema.
+- Bổ sung quy tắc Ponytail bắt buộc vào `AGENTS.md`: xác định phạm vi trước khi viết, chọn thay đổi nhỏ nhất hoàn chỉnh, ưu tiên xóa/tái sử dụng và kiểm tra đúng phạm vi cho mọi mã mới hoặc mã bổ sung.
+- Xác minh sau sửa: `npm.cmd test` trong backend đạt 7/7; `npm.cmd run build -- --configuration development` trong frontend thành công. CSS bundle giảm từ 37,96 KB còn 31,98 KB; assert mục tiêu xác nhận chỉ một tên trùng khớp mới đủ điều kiện tự ghép. Browser automation không chạy được vì Windows Application Control chặn Chrome của `agent-browser`; chưa kiểm thử với dữ liệu DLPL thật.
 
 ## Bàn giao phiên tiếp theo
 

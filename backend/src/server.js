@@ -4,6 +4,8 @@ import express from 'express';
 import { isAllowedOrigin, readAllowedOrigins } from './cors.config.js';
 import { health } from './controllers/health.controller.js';
 import inventoryRouter from './routes/inventory.js';
+import mealPlanRouter from './routes/meal-plan.js';
+import foodsRouter from './routes/foods.js';
 import authRouter from './routes/auth.js';
 
 const app = express();
@@ -22,6 +24,8 @@ app.use((request, response, next) => {
 app.get('/api/health', health);
 app.use('/api/auth', authRouter);
 app.use('/api/inventory', inventoryRouter);
+app.use('/api/meal-plans', mealPlanRouter);
+app.use('/api/foods', foodsRouter);
 app.use((error, _request, response, _next) => {
   console.error(error);
   response.status(500).json({ message: 'Đã có lỗi máy chủ. Vui lòng thử lại.' });

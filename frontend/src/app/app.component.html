@@ -16,7 +16,7 @@
     </aside>
     <main class="main-content">
       <header class="topbar"><div class="breadcrumb">Bếp Nhà <span>/</span> {{ currentPath === '/inventory' ? 'Kho thực phẩm' : 'Tổng quan' }}</div><div class="profile-chip"><span class="profile-avatar">{{ account?.name?.charAt(0) || 'B' }}</span><span>Xin chào, <strong>{{ account?.name || 'bạn' }}</strong></span><button (click)="logout()">Đăng xuất</button></div></header>
-      @if (currentPath === '/') { <app-dashboard [items]="items" [calorieTarget]="account?.daily_calorie_target ?? null" [showProfileReminder]="showProfileReminder" (inventoryRequested)="navigate($event, '/inventory')" (profileRequested)="openProfile()" (reminderDeferred)="deferProfileReminder()" /> }
+      @if (currentPath === '/') { <app-dashboard [items]="items" [calorieTarget]="account?.daily_calorie_target ?? null" [showProfileReminder]="showProfileReminder" (inventoryRequested)="navigate($event, '/inventory')" (profileRequested)="openProfile()" (reminderDeferred)="deferProfileReminder()" (itemsUpdated)="items = $event" /> }
       <app-inventory [hidden]="currentPath !== '/inventory'" (itemsChange)="items = $event" (feedback)="handleInventoryFeedback($event)" />
       <footer class="page-footer"><span>Được chăm chút từ căn bếp nhỏ <span class="footer-heart">♥</span></span><span>BẾP NHÀ · 01</span></footer>
     </main>

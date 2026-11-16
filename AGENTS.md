@@ -135,6 +135,13 @@ Các vai trò chỉ được tạo khi nhiệm vụ cần đến.
 
 Đây chỉ là ví dụ, không phải danh sách ưu tiên cố định.
 
+### 5.1. Ponytail bắt buộc khi thay đổi mã
+
+- Trước khi tạo, sửa hoặc thêm mã, Team Lead phải áp dụng quy tắc Ponytail: xác định caller, test, fixture, cấu hình và rủi ro bị ảnh hưởng trước khi viết.
+- Chọn thay đổi nhỏ nhất hoàn chỉnh; ưu tiên xóa mã chết, tái sử dụng mã đang có và thư viện/nền tảng hiện hữu. Không thêm abstraction, option hay dependency chưa cần thiết.
+- Logic mới không tầm thường phải có kiểm tra nhỏ phù hợp; sau thay đổi phải chạy kiểm tra đúng phạm vi. Báo cáo rõ phần không kiểm tra và rủi ro còn lại.
+- Quy tắc này áp dụng cho cả mã mới lẫn mã bổ sung trong mọi phiên sau, trừ khi người dùng yêu cầu rõ một hướng khác.
+
 ## 6. Kiểm thử và xác minh
 
 ### 6.1. Nguyên tắc chung

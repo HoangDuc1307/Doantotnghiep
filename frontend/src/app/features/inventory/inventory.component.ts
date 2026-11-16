@@ -175,7 +175,7 @@ export class InventoryComponent implements OnInit {
     }
 
     this.saving = true;
-    const payload: InventoryInput = { name, quantity, unit, expiry_date: this.form.expiry_date || null };
+    const payload: InventoryInput = { name, quantity, unit, expiry_date: this.form.expiry_date || null, food_id: this.editing?.food_id ?? null };
     const editing = this.editing;
 
     try {
@@ -215,6 +215,7 @@ export class InventoryComponent implements OnInit {
         quantity,
         unit: item.unit,
         expiry_date: item.expiry_date,
+        food_id: item.food_id,
       });
       this.items = this.items.map((entry) => entry.id === updated.id ? updated : entry);
       this.itemsChange.emit(this.items);

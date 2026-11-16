@@ -221,7 +221,7 @@
 .overview-link span {
   margin-left: 4px
 }
-.calorie-card,.meal-card {
+.calorie-card {
   border: 1px solid #e8e9df;
   border-radius: 7px;
   background: #fffefa;
@@ -258,7 +258,7 @@
   align-items: flex-start;
   justify-content: space-between
 }
-.card-heading h2,.meal-info h2 {
+.card-heading h2 {
   font: 600 21px var(--serif);
   letter-spacing: -.3px;
   color: #364034;
@@ -273,216 +273,6 @@
   background: #edf0e6;
   color: #76885d
 }
-.calorie-content {
-  display: flex;
-  align-items: center;
-  gap: 23px;
-  margin-top: 13px
-}
-.calorie-ring {
-  width: 134px;
-  height: 134px;
-  flex: none;
-  border-radius: 50%;
-  background: conic-gradient(#75895d 0 62%,#edf0e6 62%);
-  display: grid;
-  place-items: center;
-  position: relative
-}
-.calorie-ring:before {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border-radius: 50%;
-  background: #fffefa
-}
-.calorie-ring>div {
-  position: relative;
-  text-align: center
-}
-.calorie-ring strong {
-  display: block;
-  font: 600 25px var(--serif);
-  color: #3d4b37
-}
-.calorie-ring span {
-  display: block;
-  font-size: 8px;
-  color: #777f72;
-  margin-top: 3px
-}
-.calorie-detail {
-  flex: 1;
-  min-width: 0
-}
-.calorie-detail>span:first-child {
-  font-size: 10px;
-  color: #7c8378
-}
-.calorie-detail>strong {
-  display: block;
-  font: 600 23px var(--serif);
-  color: #3e493a;
-  margin: 4px 0 9px
-}
-.calorie-detail>strong small {
-  font: 500 11px 'DM Sans',sans-serif;
-  color: #858b80
-}
-.progress-track {
-  height: 5px;
-  border-radius: 10px;
-  background: #eceee6;
-  overflow: hidden
-}
-.progress-track span {
-  display: block;
-  width: 62%;
-  height: 100%;
-  background: #788c60;
-  border-radius: 10px
-}
-.calorie-detail p {
-  font-size: 10px;
-  color: #80877c;
-  margin: 8px 0
-}
-.calorie-detail p b {
-  color: #536c43
-}
-.calorie-foot {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #73805f;
-  font-size: 9px!important;
-  margin-top: 12px
-}
-.meal-card {
-  display: grid;
-  grid-template-columns: 42% 1fr
-}
-.meal-art {
-  position: relative;
-  background: #e9eadb;
-  display: grid;
-  place-items: center;
-  overflow: hidden
-}
-.meal-art:before {
-  content: "";
-  position: absolute;
-  width: 190px;
-  height: 190px;
-  border: 1px solid #d5d8c5;
-  border-radius: 50%
-}
-.meal-sticker {
-  position: absolute;
-  top: 15px;
-  left: 14px;
-  z-index: 2;
-  background: #fffefa;
-  color: #657451;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: .8px;
-  padding: 7px 9px;
-  border-radius: 20px
-}
-.bowl {
-  position: relative;
-  width: 132px;
-  height: 90px;
-  margin-top: 22px;
-  border-radius: 15% 15% 48% 48%;
-  background: #faf8ef;
-  border: 1px solid #d4d1bf;
-  box-shadow: 0 9px 0 #d6d1c0;
-  transform: rotate(-8deg);
-  z-index: 1
-}
-.bowl:after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 9px;
-  height: 13px;
-  border-radius: 50%;
-  background: #eeebdc;
-  border: 1px solid #d8d4c7
-}
-.bowl-rice {
-  position: absolute;
-  z-index: 2;
-  width: 60px;
-  height: 48px;
-  background: #fffdf4;
-  border-radius: 50%;
-  top: 6px;
-  left: 19px;
-  box-shadow: 39px 2px #f5eddb
-}
-.bowl-greens {
-  position: absolute;
-  z-index: 3;
-  width: 39px;
-  height: 19px;
-  background: #688451;
-  border-radius: 90% 10% 90% 10%;
-  top: 14px;
-  right: 16px;
-  transform: rotate(-12deg)
-}
-.bowl-egg {
-  position: absolute;
-  z-index: 4;
-  width: 28px;
-  height: 24px;
-  background: #f4d98a;
-  border: 5px solid #fffaf0;
-  border-radius: 50%;
-  top: 18px;
-  left: 47px
-}
-.bowl-carrot {
-  position: absolute;
-  z-index: 4;
-  width: 35px;
-  height: 6px;
-  background: #d88353;
-  border-radius: 10px;
-  top: 43px;
-  left: 25px;
-  transform: rotate(-15deg)
-}
-.meal-sun {
-  position: absolute;
-  right: 15px;
-  bottom: 15px;
-  font-size: 24px;
-  color: #a58c5c
-}
-.meal-info {
-  padding: 20px 18px;
-  align-self: center
-}
-.meal-info .eyebrow {
-  font-size: 8px
-}
-.meal-info h2 {
-  font-size: 21px;
-  line-height: 1.27;
-  margin: 9px 0 6px
-}
-.meal-info p {
-  font-size: 10px;
-  line-height: 1.6;
-  color: #7a8176;
-  margin: 0;
-  max-width: 190px
-}
 .meal-link {
   display: inline-flex;
   align-items: center;
@@ -494,6 +284,18 @@
   font-weight: 700;
   font-size: 10px
 }
+
+.ai-suggestion { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.ai-suggestion p { margin: .25rem 0 .75rem; color: var(--muted); font-size: .9rem; }
+.ai-suggestion pre { margin: 0; white-space: pre-wrap; font: inherit; line-height: 1.55; }
+.meal-suggestions { display: grid; gap: .8rem; margin-top: 1rem; }
+.meal-suggestion-card { padding: 1rem; border: 1px solid var(--line); border-radius: 1rem; background: rgba(255, 255, 255, .65); }
+.meal-suggestion-card h3 { margin: 0 0 .8rem; font-size: 1rem; }
+.meal-suggestion-card > div { display: grid; gap: .35rem; margin-top: .75rem; }
+.meal-suggestion-card span { display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); }
+.meal-suggestion-card b { color: var(--ink); white-space: nowrap; }
+.meal-suggestion-card ol { margin: 0; padding-left: 1.25rem; line-height: 1.5; }
+
 .inventory-section {
   margin-top: 31px
 }
@@ -1049,17 +851,8 @@
   .dashboard-grid {
     grid-template-columns: 1fr
   }
-  .calorie-card,.meal-card {
+  .calorie-card {
     min-height: 220px
-  }
-  .meal-card {
-    grid-template-columns: 38% 1fr
-  }
-  .meal-info {
-    padding-left: 25px
-  }
-  .calorie-content {
-    max-width: 480px
   }
   .inventory-section {
     margin-top: 26px
@@ -1195,45 +988,6 @@
   }
   .card-heading h2 {
     font-size: 19px
-  }
-  .calorie-content {
-    gap: 14px;
-    margin-top: 12px
-  }
-  .calorie-ring {
-    width: 116px;
-    height: 116px
-  }
-  .calorie-ring strong {
-    font-size: 22px
-  }
-  .calorie-detail>strong {
-    font-size: 20px
-  }
-  .meal-card {
-    min-height: 204px;
-    grid-template-columns: 39% 1fr
-  }
-  .meal-art:before {
-    width: 145px;
-    height: 145px
-  }
-  .bowl {
-    transform: scale(.83) rotate(-8deg)
-  }
-  .meal-sticker {
-    font-size: 7px;
-    left: 8px;
-    padding: 6px
-  }
-  .meal-info {
-    padding: 15px 13px
-  }
-  .meal-info h2 {
-    font-size: 19px
-  }
-  .meal-info p {
-    font-size: 9px
   }
   .inventory-section {
     margin-top: 25px
@@ -1380,42 +1134,6 @@
   }
   .calorie-card {
     padding: 14px 11px
-  }
-  .calorie-ring {
-    width: 103px;
-    height: 103px
-  }
-  .calorie-ring strong {
-    font-size: 19px
-  }
-  .calorie-ring span {
-    font-size: 7px
-  }
-  .calorie-content {
-    gap: 10px
-  }
-  .calorie-detail>span:first-child {
-    font-size: 9px
-  }
-  .meal-card {
-    grid-template-columns: 36% 1fr
-  }
-  .meal-info {
-    padding-inline: 10px
-  }
-  .meal-info h2 {
-    font-size: 17px
-  }
-  .meal-art:before {
-    width: 120px;
-    height: 120px
-  }
-  .bowl {
-    transform: scale(.72) rotate(-8deg)
-  }
-  .meal-sticker {
-    font-size: 6px;
-    left: 6px
   }
   .inventory-summary {
     gap: 6px

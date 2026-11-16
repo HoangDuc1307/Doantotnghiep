@@ -42,3 +42,22 @@ ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES use
 CREATE INDEX IF NOT EXISTS inventory_items_user_id_idx ON inventory_items (user_id);
 
 CREATE INDEX IF NOT EXISTS inventory_items_expiry_date_idx ON inventory_items (expiry_date);
+
+CREATE TABLE IF NOT EXISTS foods (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fdc_id INTEGER UNIQUE,
+  description TEXT NOT NULL,
+  energy_kcal_per_100g NUMERIC(10, 2) NOT NULL CHECK (energy_kcal_per_100g >= 0),
+  source TEXT NOT NULL,
+  source_id TEXT,
+  source_version TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE foods ALTER COLUMN fdc_id DROP NOT NULL;
+ALTER TABLE foods ADD COLUMN IF NOT EXISTS source_id TEXT;
+UPDATE foods SET source_id = CONCAT('fdc:', fdc_id) WHERE source_id IS NULL AND fdc_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS foods_source_source_id_idx ON foods (source, source_id) WHERE source_id IS NOT NULL;
+
+ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS food_id UUID REFERENCES foods(id);
+CREATE INDEX IF NOT EXISTS inventory_items_food_id_idx ON inventory_items (food_id);
