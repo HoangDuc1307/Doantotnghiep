@@ -1,12 +1,14 @@
 import { ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, OnInit, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { InventoryInput, InventoryItem, InventoryService } from '../../core/services/inventory.service';
+import { InventoryInput, InventoryItem, InventoryService, NutritionFood } from '../../core/services/inventory.service';
 
 interface FoodForm {
   name: string;
   quantity: string;
   unit: string;
   expiry_date: string;
+  food_id: string | null;
+  food_description: string | null;
 }
 
 interface ExpiryState {
@@ -44,6 +46,9 @@ export class InventoryComponent implements OnInit {
   form: FoodForm = this.blankForm();
   fieldErrors: Partial<Record<FoodField, string>> = {};
   formError = '';
+  nutritionResults: NutritionFood[] = [];
+  searchingNutrition = false;
+  nutritionError = '';
   readonly units = ['món', 'g', 'kg', 'ml', 'lít', 'hộp', 'gói', 'chai', 'quả', 'bó'];
 
   constructor(
@@ -88,6 +93,8 @@ export class InventoryComponent implements OnInit {
       quantity: String(item.quantity),
       unit: item.unit,
       expiry_date: item.expiry_date || '',
+      food_id: item.food_id,
+      food_description: item.food_description || null,
     };
     this.clearFormErrors();
     this.dialogOpen = true;
@@ -98,7 +105,7 @@ export class InventoryComponent implements OnInit {
     if (!this.editing || this.saving) return;
     const { name, unit } = this.editing;
     this.editing = null;
-    this.form = { name, quantity: '1', unit, expiry_date: '' };
+    this.form = { name, quantity: '1', unit, expiry_date: '', food_id: null, food_description: null };
     this.clearFormErrors();
     this.focusFoodName();
   }
@@ -175,7 +182,7 @@ export class InventoryComponent implements OnInit {
     }
 
     this.saving = true;
-    const payload: InventoryInput = { name, quantity, unit, expiry_date: this.form.expiry_date || null, food_id: this.editing?.food_id ?? null };
+    const payload: InventoryInput = { name, quantity, unit, expiry_date: this.form.expiry_date || null, food_id: this.form.food_id };
     const editing = this.editing;
 
     try {
@@ -253,6 +260,49 @@ export class InventoryComponent implements OnInit {
     return { label: `HSD ${expiry.toLocaleDateString('vi-VN')}`, tone: 'fresh' };
   }
 
+  onFoodNameChange(): void {
+    this.clearFieldError('name');
+    if (this.form.food_id) this.form = { ...this.form, food_id: null, food_description: null };
+    this.nutritionResults = [];
+    this.nutritionError = '';
+  }
+
+  async searchNutrition(): Promise<void> {
+    const name = this.form.name.trim();
+    if (name.length < 2 || this.searchingNutrition) {
+      this.nutritionError = 'Nhập ít nhất 2 ký tự để tra cứu dữ liệu dinh dưỡng.';
+      return;
+    }
+    this.searchingNutrition = true;
+    this.nutritionError = '';
+    this.nutritionResults = [];
+    try {
+      this.nutritionResults = await this.inventory.searchFoods(name);
+      if (!this.nutritionResults.length) this.nutritionError = 'Chưa tìm thấy thực phẩm phù hợp. Bạn vẫn có thể lưu kho mà không đối chiếu.';
+    } catch (error) {
+      this.nutritionError = this.errorMessage(error);
+    } finally {
+      this.searchingNutrition = false;
+      this.changeDetector.markForCheck();
+    }
+  }
+
+  async selectNutrition(food: NutritionFood): Promise<void> {
+    if (this.searchingNutrition) return;
+    this.searchingNutrition = true;
+    this.nutritionError = '';
+    try {
+      const selected = await this.inventory.selectFood(food.id);
+      this.form = { ...this.form, food_id: selected.id, food_description: selected.description };
+      this.nutritionResults = [];
+    } catch (error) {
+      this.nutritionError = this.errorMessage(error);
+    } finally {
+      this.searchingNutrition = false;
+      this.changeDetector.markForCheck();
+    }
+  }
+
   private async loadItems(): Promise<boolean> {
     this.loading = true;
     try {
@@ -278,7 +328,7 @@ export class InventoryComponent implements OnInit {
   }
 
   private blankForm(): FoodForm {
-    return { name: '', quantity: '1', unit: 'món', expiry_date: '' };
+    return { name: '', quantity: '1', unit: 'món', expiry_date: '', food_id: null, food_description: null };
   }
 
   private quantityErrorFor(quantityText: string, quantity: number): string | null {

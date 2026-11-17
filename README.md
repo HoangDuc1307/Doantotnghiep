@@ -1,6 +1,6 @@
 # Bếp Nhà — nền tảng quản lý kho thực phẩm
 
-Đây là bước khởi tạo MVP cho đồ án: giao diện Angular responsive, API Node.js/Express và PostgreSQL. Hiện tại phạm vi gồm xác thực tài khoản, hồ sơ mục tiêu năng lượng hằng ngày, xem/thêm/sửa/xóa thực phẩm với tên, số lượng, đơn vị và hạn sử dụng tùy chọn, cùng gợi ý bữa ăn AI ước tính. Ứng dụng tự ghép gần đúng một số thực phẩm với dữ liệu Việt Nam, AI đề xuất khẩu phần gram và backend tính kcal từ dữ liệu có cấu trúc; đây là ước tính thực đơn, không phải số đo hay tư vấn y tế. QR, giọng nói, tra cứu sản phẩm bao bì và lưu thực đơn chưa được triển khai.
+Đây là bước khởi tạo MVP cho đồ án: giao diện Angular responsive, API Node.js/Express và PostgreSQL. Phạm vi hiện có gồm xác thực, hồ sơ mục tiêu năng lượng, CRUD kho thực phẩm, đối chiếu dữ liệu dinh dưỡng, gợi ý AI và lưu thực đơn. AI chỉ đề xuất lượng theo đúng đơn vị đang có trong kho; backend cộng lượng qua toàn bộ món, chặn phương án vượt kho và chỉ tính kcal khi thực phẩm đã đối chiếu dữ liệu cùng đơn vị g hoặc kg. Kết quả vẫn là ước tính cần người dùng xác nhận, không phải số đo hay tư vấn y tế. QR, giọng nói, tra cứu sản phẩm bao bì và đồng bộ kho offline chưa được triển khai.
 
 Service worker lưu vỏ giao diện đã tải để có thể mở lại giao diện cơ bản khi mất mạng. Các thao tác kho vẫn cần backend và PostgreSQL hoạt động; đồng bộ hoặc chỉnh sửa dữ liệu offline chưa có.
 
@@ -11,7 +11,7 @@ Service worker lưu vỏ giao diện đã tải để có thể mở lại giao 
 
 ## Khởi tạo cơ sở dữ liệu
 
-Chạy `backend/schema.sql` trong database, ví dụ bằng pgAdmin hoặc `psql`. Script tạo bảng tài khoản và thêm `user_id` vào bảng thực phẩm. Nếu database đã có dữ liệu từ bản trước, những thực phẩm cũ chưa thuộc tài khoản nào sẽ không xuất hiện trong kho người dùng; dữ liệu đó vẫn được giữ nguyên trong database.
+Chạy `backend/schema.sql` trong database, ví dụ bằng pgAdmin hoặc `psql`. Script tạo/cập nhật bảng tài khoản, kho, dữ liệu dinh dưỡng, hồ sơ dinh dưỡng, công thức và thực đơn. Nếu database đã có dữ liệu từ bản trước, những thực phẩm cũ chưa thuộc tài khoản nào sẽ không xuất hiện trong kho người dùng; dữ liệu đó vẫn được giữ nguyên trong database.
 
 Để đối chiếu kcal cho gợi ý thực đơn, đăng ký key miễn phí tại [DLPL API](https://api.dulieuphapluat.vn/tai-lieu/bo-du-lieu/nutrition-foods) và đặt `DLPL_API_KEY` trong `backend/.env`. Khi người dùng chọn một thực phẩm Việt Nam, backend tự xác minh kcal/100 g từ Bảng thành phần thực phẩm Việt Nam của Viện Dinh dưỡng Quốc gia qua DLPL API, rồi lưu bản ghi đã chọn trong database cục bộ.
 
@@ -45,14 +45,14 @@ Angular CLI phục vụ giao diện tại `http://localhost:4200`. API mặc đ�
 
 Để thử trên điện thoại cùng Wi-Fi, thêm origin frontend vào `FRONTEND_ORIGINS` trong `backend/.env`, phân tách bằng dấu phẩy, ví dụ `http://localhost:4200,http://127.0.0.1:4200,http://192.168.31.181:4200`. Địa chỉ IP LAN có thể đổi sau khi kết nối lại mạng; cần cập nhật biến này và bảo đảm Windows Firewall cho phép cổng `4000`.
 
-Đăng ký và đăng nhập dùng tài khoản PostgreSQL; mật khẩu được băm ở backend. Phiên đăng nhập dùng bearer token có hạn 7 ngày, được lưu trong localStorage. Mỗi tài khoản chỉ truy cập được thực phẩm của mình. Sau khi đăng ký, người dùng có thể thiết lập mục tiêu calo hằng ngày; chiều cao và cân nặng là tùy chọn, có thể cập nhật lại. Chức năng quên mật khẩu, quét mã, nhập giọng nói, tra cứu sản phẩm và tính năng lượng được kiểm chứng chưa triển khai.
+Đăng ký và đăng nhập dùng tài khoản PostgreSQL; mật khẩu được băm ở backend. Phiên đăng nhập dùng bearer token có hạn 7 ngày, được lưu trong localStorage. Mỗi tài khoản chỉ truy cập được thực phẩm và thực đơn của mình. Sau khi đăng ký, người dùng có thể thiết lập mục tiêu calo hằng ngày; chiều cao, cân nặng, tuổi, tham số giới tính và hệ số vận động đều tùy chọn. Ứng dụng chưa tự tính BMR/TDEE; mục tiêu năng lượng vẫn do người dùng xác nhận. Chức năng quên mật khẩu, quét mã, nhập giọng nói và tra cứu sản phẩm từ bao bì chưa triển khai.
 
 ## API hiện có
 
 - `POST /api/auth/register`: tạo tài khoản.
 - `POST /api/auth/login`: đăng nhập và nhận bearer token.
 - `GET /api/auth/me`: lấy thông tin tài khoản đang đăng nhập.
-- `PATCH /api/auth/profile`: lưu chiều cao, cân nặng tùy chọn và mục tiêu calo hằng ngày của tài khoản đang đăng nhập.
+- `PATCH /api/auth/profile`: lưu mục tiêu calo, chiều cao/cân nặng và các trường công thức tùy chọn của tài khoản đang đăng nhập.
 - `GET /api/inventory`: lấy thực phẩm của tài khoản, xếp theo hạn sử dụng gần nhất.
 - `POST /api/inventory`: thêm thực phẩm của tài khoản.
 - `PATCH /api/inventory/:id`: cập nhật thực phẩm thuộc tài khoản.
@@ -60,4 +60,4 @@ Angular CLI phục vụ giao diện tại `http://localhost:4200`. API mặc đ�
 
 Các API `/api/inventory` yêu cầu header `Authorization: Bearer <token>`. Các trường thực phẩm bắt buộc là `name`, `quantity` (không âm), `unit`; `expiry_date` có thể để trống.
 
-`GET /api/foods?q=` yêu cầu đăng nhập và tìm thực phẩm Việt Nam từ DLPL. `POST /api/foods/:sourceId/select` xác minh bản ghi ở backend rồi lưu vào database. `POST /api/meal-plans/suggestions` gửi tối đa 15 thực phẩm có hạn gần nhất cho AI để tạo món/cách nấu cùng khẩu phần gram ước tính. Trước khi gọi AI, giao diện tự thử ghép tối đa ba thực phẩm chưa có dữ liệu bằng kết quả DLPL gần nhất và lưu liên kết. Backend tính kcal từ gram AI đề xuất và dữ liệu dinh dưỡng đã lưu; kết quả luôn được trình bày là ước tính.
+`GET /api/foods?q=` yêu cầu đăng nhập và tìm thực phẩm Việt Nam từ DLPL. `POST /api/foods/:sourceId/select` xác minh bản ghi ở backend rồi lưu vào database. `POST /api/meal-plans/suggestions` gửi tối đa 15 thực phẩm có hạn gần nhất cho AI để tạo món/cách nấu. Backend chỉ nhận lượng theo đúng đơn vị kho, cộng lượng nguyên liệu trùng và chỉ tính kcal khi đơn vị là g hoặc kg cùng dữ liệu nguồn đã liên kết. `GET /api/meal-plans`, `POST /api/meal-plans` và `GET /api/meal-plans/:id` lần lượt xem danh sách, lưu và xem chi tiết thực đơn thuộc tài khoản; lưu thực đơn không tự trừ kho.

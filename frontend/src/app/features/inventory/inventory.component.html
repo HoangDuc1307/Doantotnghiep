@@ -61,7 +61,7 @@
         @if (formError) { <p class="form-error" role="alert">{{ formError }}</p> }
         <label class="form-field">
           Tên thực phẩm
-          <input #foodNameInput maxlength="120" required [attr.aria-invalid]="fieldErrors.name ? 'true' : null" [attr.aria-describedby]="fieldErrors.name ? 'food-name-error' : null" [(ngModel)]="form.name" (ngModelChange)="clearFieldError('name')" name="foodName" placeholder="Ví dụ: Cà chua bi" />
+          <input #foodNameInput maxlength="120" required [attr.aria-invalid]="fieldErrors.name ? 'true' : null" [attr.aria-describedby]="fieldErrors.name ? 'food-name-error' : null" [(ngModel)]="form.name" (ngModelChange)="onFoodNameChange()" name="foodName" placeholder="Ví dụ: Cà chua bi" />
           @if (fieldErrors.name) { <span class="field-error" id="food-name-error" role="alert">{{ fieldErrors.name }}</span> }
         </label>
         <div class="form-split">
@@ -78,6 +78,13 @@
           </label>
         </div>
         <label class="form-field">Hạn sử dụng <span class="optional-label">(có thể bổ sung sau)</span><input type="date" [(ngModel)]="form.expiry_date" name="expiry" /></label>
+        <div class="form-field" aria-live="polite">
+          <span>Dữ liệu dinh dưỡng <span class="optional-label">(chỉ dùng khi bạn xác nhận)</span></span>
+          @if (form.food_description) { <span class="field-hint">Đã chọn: {{ form.food_description }}</span> }
+          <button type="button" class="secondary-button" (click)="searchNutrition()" [disabled]="searchingNutrition">{{ searchingNutrition ? 'Đang tra cứu…' : 'Tra cứu và chọn thực phẩm' }}</button>
+          @if (nutritionError) { <span class="field-error" role="alert">{{ nutritionError }}</span> }
+          @if (nutritionResults.length) { <div class="nutrition-results">@for (food of nutritionResults; track food.id) { <button type="button" class="text-button" (click)="selectNutrition(food)" [disabled]="searchingNutrition">{{ food.description }} · {{ food.energy_kcal_per_100g }} kcal/100 g</button> }</div> }
+        </div>
         <div class="form-note"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4c-8 0-14 4-14 11a5 5 0 0 0 5 5c7 0 11-6 9-16Z" /><path d="M5 21c2-5 6-8 11-11" /></svg><span>Thông tin chưa có có thể để trống — bạn bổ sung sau cũng được.</span></div>
         <div class="dialog-actions">@if (editing) { <button type="button" class="secondary-button" (click)="duplicateItem()" [disabled]="saving">Nhập lại món này</button> }<button type="button" class="secondary-button" (click)="closeDialog()" [disabled]="saving">Để sau</button><button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Lưu vào kho' }}</button></div>
       </form>

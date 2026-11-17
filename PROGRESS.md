@@ -338,6 +338,46 @@ Trạng thái dưới đây được đối chiếu với mã nguồn ngày 2026
 - Bổ sung quy tắc Ponytail bắt buộc vào `AGENTS.md`: xác định phạm vi trước khi viết, chọn thay đổi nhỏ nhất hoàn chỉnh, ưu tiên xóa/tái sử dụng và kiểm tra đúng phạm vi cho mọi mã mới hoặc mã bổ sung.
 - Xác minh sau sửa: `npm.cmd test` trong backend đạt 7/7; `npm.cmd run build -- --configuration development` trong frontend thành công. CSS bundle giảm từ 37,96 KB còn 31,98 KB; assert mục tiêu xác nhận chỉ một tên trùng khớp mới đủ điều kiện tự ghép. Browser automation không chạy được vì Windows Application Control chặn Chrome của `agent-browser`; chưa kiểm thử với dữ liệu DLPL thật.
 
+### 2026-11-17 — đối chiếu báo cáo với mã nguồn hiện tại
+
+- Đọc `AGENTS.md`, `README.md`, `PROGRESS.md`, báo cáo chính trong `docs` và đối chiếu tĩnh schema, route/controller/service backend, giao diện Angular cùng cấu hình PWA. Báo cáo có nội dung đến hết Chương 2 và Tài liệu tham khảo; Chương 3, Kết luận và Hướng phát triển chỉ hiện trong mục lục, chưa có nội dung thực tế.
+- Mã hiện có xác thực bearer HMAC, hồ sơ mục tiêu do người dùng nhập, CRUD kho theo chủ sở hữu, PWA cache shell, nguồn dinh dưỡng DLPL/`foods` và gợi ý AI với kcal **ước tính** do backend tính từ gram AI trả về. QR, giọng nói, BMR/TDEE, hàng đợi/offline CRUD, recipes và lưu/xem meal plan chưa có mã nguồn tương ứng.
+- Cần đồng bộ báo cáo trước khi dùng làm báo cáo kết quả: Bảng API ghi `GET /api/foods/lookup` nhưng route thực tế là `GET /api/foods?q=`; phần dữ liệu khẳng định bộ CSV/JSON V1 và công thức nhưng các tệp này không có trong workspace. Importer USDA có mã nguồn, song dữ liệu đầu vào không có trong workspace; luồng chạy hiện tại lấy dữ liệu Việt Nam qua DLPL. Đề xuất AI cũng chưa so lượng nguyên liệu AI gợi ý với `quantity` trong kho hoặc lưu kế hoạch, nên chỉ nên trình bày đúng là gợi ý ước tính.
+- Xác minh ngày 2026-11-17: `npm.cmd test` tại `backend` đạt 7/7; `npm.cmd run build -- --configuration development` tại `frontend` thành công. Chưa chạy browser, PostgreSQL, DLPL hay MộtAPI trong phiên này.
+
+### 2026-11-17 — rà soát chi tiết thiết kế dữ liệu dinh dưỡng
+
+- Đối chiếu riêng mục 2.4.3, bảng 2.10–2.17 của báo cáo với `backend/schema.sql` và validation hiện tại. `users`/`inventory_items` cơ bản khớp, nhưng bảng `users` trong báo cáo cần bổ sung ba cột đang dùng là `height_cm`, `weight_kg`, `daily_calorie_target`; `nutrition_profiles` chỉ là thiết kế mở rộng, chưa tồn tại.
+- Bảng `foods` trong báo cáo chưa phản ánh schema thực tế: mã nguồn dùng `description`, `energy_kcal_per_100g` bắt buộc, `fdc_id`, `source_id`, `source_version`, `created_at`; chưa có `base_quantity`, `base_unit`, `retrieved_at`, protein/lipid/carbohydrate hoặc năng lượng nullable như thiết kế. Importer USDA cũng chỉ nhập kcal. Vì vậy không thể trình bày ứng dụng đang dùng đầy đủ dữ liệu đa chất hay tự quy đổi đơn vị.
+- `recipes`, `recipe_ingredients`, `meal_plans`, `meal_plan_items` và giao dịch lưu thực đơn vẫn hoàn toàn là thiết kế. Luồng gợi ý thực tế không truy vấn `inventory_items.quantity`, chỉ dùng danh sách tên/đơn vị và kcal/100 g; chưa kiểm soát tổng lượng AI gợi ý so với tồn kho. Bộ CSV/JSON dinh dưỡng và công thức mà báo cáo nêu không có trong workspace để tái lập.
+
+### 2026-11-17 — hiện thực phần dữ liệu và thực đơn theo báo cáo
+
+- Mở rộng `backend/schema.sql` theo các bảng thiết kế: `nutrition_profiles`, `recipes`, `recipe_ingredients`, `meal_plans`, `meal_plan_items`; bổ sung metadata cơ sở tính, nguồn/truy xuất và bốn chỉ tiêu dinh dưỡng có thể để trống vào `foods`. Hồ sơ hiện đồng bộ tương thích với ba cột cũ trong `users`, đồng thời lưu tuổi, tham số giới tính và hệ số vận động tùy chọn. Mục tiêu vẫn là do người dùng nhập; không tự tính BMR/TDEE khi chưa có chính sách hệ số được xác định.
+- Đổi contract AI theo ràng buộc báo cáo: không nhận `grams` do AI tự tạo; AI chỉ được đề xuất `quantity` theo đúng đơn vị kho. Backend bỏ lượng bằng 0, cộng lượng trên toàn bộ món, từ chối vượt kho và chỉ tính kcal khi mọi thực phẩm đã ánh xạ và dùng g/kg. Đơn vị quả/hộp/ml hoặc dữ liệu chưa ánh xạ trả trạng thái thiếu căn cứ, không quy đổi giả định.
+- Thêm `GET/POST /api/meal-plans` và `GET /api/meal-plans/:id`. Lưu thực đơn kiểm tra lại kho thuộc chủ sở hữu, dữ liệu năng lượng và lượng dùng trong transaction; sau đó lưu công thức, nguyên liệu, snapshot kcal và kế hoạch. Lưu không tự trừ kho. Dashboard có thể lưu gợi ý đủ dữ liệu và xem danh sách kế hoạch đã lưu.
+- Cập nhật importer USDA để giữ năng lượng, protein, lipid và carbohydrate khi nguồn có dữ liệu; cập nhật README theo API và giới hạn mới. Không đưa dữ liệu dinh dưỡng giả vào workspace.
+- Xác minh ngày 2026-11-17: `npm.cmd test` tại `backend` đạt 9/9; `node --check` đạt cho controller/service/importer đã sửa; `npm.cmd run build -- --configuration development` tại `frontend` thành công. Chưa chạy `schema.sql` trên PostgreSQL, E2E trình duyệt, DLPL hoặc MộtAPI thật.
+
+### 2026-11-17 — khởi động môi trường cục bộ sau cập nhật schema
+
+- Đã áp dụng `backend/schema.sql` lên PostgreSQL cục bộ bằng `psql -v ON_ERROR_STOP=1 -f backend/schema.sql`; không có lỗi trả về. Khởi động `npm.cmd run dev` tại backend và `npm.cmd start` tại frontend.
+- Kiểm tra `GET http://localhost:4000/api/health` trả `{"status":"ok","database":"connected"}`. Mở `http://localhost:4200` bằng phiên trình duyệt tách biệt; màn hình đăng nhập hiển thị bình thường. Chưa đăng ký tài khoản QA hay kiểm thử luồng thực đơn có xác thực/DLPL/MộtAPI.
+
+### 2026-11-17 — nhập bộ tham chiếu dinh dưỡng V1 từ docs
+
+- Xác định `docs/PWA_Nutrition_Reference_V1_28.csv` là bộ 28 hồ sơ phù hợp; hai CSV SMILING khác gồm một file rỗng và một file QA riêng cho canxi nên không dùng để import.
+- Thêm importer `backend/scripts/import-pwa-nutrition-reference.js` và lệnh `npm run import:nutrition-reference`; parser kiểm header, số dòng, cơ sở 100 g, giá trị không âm, mã duy nhất và metadata nguồn. Import lưu kcal, protein, lipid, carbohydrate nullable, mã/phiên bản nguồn, URL, locator, SHA-256, cờ chất lượng và thời điểm truy xuất.
+- API `/api/foods?q=` ưu tiên hồ sơ tham chiếu nội bộ đã nhập, fallback DLPL khi không có kết quả. Form kho thêm tra cứu và bước người dùng xác nhận liên kết dữ liệu; đổi tên sẽ bỏ liên kết cũ.
+- Đã áp dụng `backend/schema.sql` vào database phát triển đúng theo `DATABASE_URL`, rồi import thành công. Xác minh SQL: 28 hồ sơ; 28 đủ protein/lipid/carbohydrate; 28 có URL, locator và SHA-256; có 3 nguồn.
+- Xác minh ngày 2026-11-17: backend `npm.cmd test` đạt 10/10; Angular development build thành công. Chưa kiểm thử luồng tra cứu/chọn qua browser có tài khoản.
+
+### 2026-11-17 — cải thiện độ ổn định và thời gian phản hồi AI
+
+- Không có quyền fine-tune model từ key MộtAPI hiện tại; cải thiện phần request của ứng dụng: prompt ngắn hơn, chỉ yêu cầu món đơn giản từ kho, xem mục tiêu kcal là tham khảo và yêu cầu đúng đơn vị/lượng kho.
+- Giảm giới hạn phản hồi 500 xuống 350 token, timeout 45 xuống 25 giây; retry tối đa một lần sau lỗi 429/5xx. Lỗi timeout, JSON không hợp lệ và dịch vụ lỗi tiếp tục được chuyển thành thông báo có kiểm soát.
+- Xác minh `npm.cmd test` tại backend đạt 10/10. Chưa đo độ trễ với MộtAPI thật sau thay đổi; không thể bảo đảm nhà cung cấp luôn sẵn sàng hoặc không lỗi.
+
 ## Bàn giao phiên tiếp theo
 
 - Team Lead chủ động cập nhật `PROGRESS.md` sau mỗi phiên đáng kể theo quy tắc ở **Tổng quan dự án**, không cần chờ nhắc lại.

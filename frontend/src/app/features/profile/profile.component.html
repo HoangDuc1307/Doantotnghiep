@@ -18,8 +18,19 @@
           <input name="weightKg" type="text" inputmode="decimal" [(ngModel)]="weightKg" placeholder="Ví dụ: 55,5" />
         </label>
       </div>
+      <div class="form-split">
+        <label class="form-field">Tuổi <span class="optional-label">(tùy chọn)</span>
+          <input name="ageYears" type="text" inputmode="numeric" [(ngModel)]="ageYears" placeholder="Ví dụ: 22" />
+        </label>
+        <label class="form-field">Giới tính cho công thức <span class="optional-label">(tùy chọn)</span>
+          <select name="sexForEquation" [(ngModel)]="sexForEquation"><option value="">Chưa chọn</option><option value="male">Nam</option><option value="female">Nữ</option></select>
+        </label>
+      </div>
+      <label class="form-field">Hệ số vận động <span class="optional-label">(tùy chọn)</span>
+        <input name="activityFactor" type="text" inputmode="decimal" [(ngModel)]="activityFactor" placeholder="Chỉ nhập khi có hệ số đã xác định" />
+      </label>
       @if (formError) { <p class="form-error" role="alert">{{ formError }}</p> }
-      <p class="form-note">Dữ liệu này chỉ dùng cho hồ sơ trong ứng dụng; tính năng này không đưa ra tư vấn y khoa.</p>
+      <p class="form-note">Mục tiêu hiện do bạn tự xác nhận. Ứng dụng chưa tự tính BMR hoặc TDEE và không đưa ra tư vấn y khoa.</p>
       <div class="dialog-actions">
         @if (canSkip) { <button type="button" class="secondary-button" (click)="dismiss()" [disabled]="saving">Bỏ qua lúc này</button> }
         <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Đang lưu…' : 'Lưu mục tiêu' }}</button>

@@ -32,12 +32,20 @@ export interface Account {
   height_cm: number | null;
   weight_kg: number | null;
   daily_calorie_target: number | null;
+  age_years: number | null;
+  sex_for_equation: 'male' | 'female' | null;
+  activity_factor: number | null;
+  target_method: 'manual' | 'estimated';
 }
 
 export interface ProfileInput {
   height_cm: number | null;
   weight_kg: number | null;
   daily_calorie_target: number;
+  age_years?: number | null;
+  sex_for_equation?: 'male' | 'female' | null;
+  activity_factor?: number | null;
+  target_method?: 'manual' | 'estimated';
 }
 
 export interface MealSuggestion {
@@ -54,17 +62,27 @@ export interface MealSuggestion {
 export interface UnverifiedItem { id: string; name: string; }
 
 export interface MealIngredient {
+  inventoryId: string;
   name: string;
   quantity: number;
   unit: string;
-  grams: number;
   kcal: number | null;
 }
 
 export interface Meal {
   name: string;
+  mealSlot: string;
   ingredients: MealIngredient[];
   steps: string[];
+}
+
+export interface SavedMealPlan {
+  id: string;
+  plan_date: string;
+  target_kcal: number;
+  total_kcal: number;
+  status: 'confirmed';
+  meal_names: string[];
 }
 
 interface AuthResponse { user: Account; token: string; }
@@ -100,6 +118,10 @@ export class InventoryService {
   remove(id: string): Promise<void> { return this.request(`/inventory/${id}`, { method: 'DELETE' }); }
   suggestMeals(): Promise<MealSuggestion> {
     return this.request('/meal-plans/suggestions', { method: 'POST' });
+  }
+  listMealPlans(): Promise<SavedMealPlan[]> { return this.request('/meal-plans'); }
+  saveMealPlan(planDate: string, meals: Meal[]): Promise<SavedMealPlan> {
+    return this.request('/meal-plans', { method: 'POST', body: JSON.stringify({ plan_date: planDate, meals }) });
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
