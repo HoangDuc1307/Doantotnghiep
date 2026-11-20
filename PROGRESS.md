@@ -380,6 +380,19 @@ Trạng thái dưới đây được đối chiếu với mã nguồn ngày 2026
 
 ## Bàn giao phiên tiếp theo
 
+### 2026-11-20 — xác lập báo cáo làm chuẩn nghiệp vụ và thiết kế
+
+- Đã đọc báo cáo `docs/Báo cáo đồ án PWA quản lý thực phẩm và đề xuất thực đơn.docx` theo yêu cầu. Báo cáo được dùng làm chuẩn cho phạm vi nghiệp vụ, nguyên tắc dữ liệu, kiến trúc và tiêu chí kiểm chứng ở các phiên sau.
+- Khi đối chiếu hoặc triển khai, phải phân biệt rõ **đã có mã nguồn và đã kiểm thử** với **thiết kế mở rộng** trong báo cáo. QR, nhập giọng nói, BMR/TDEE tự tính, công thức định lượng V1, đồng bộ kho ngoại tuyến và kiểm thử nguồn ngoài không được tuyên bố là hoàn thành nếu chưa có bằng chứng mã nguồn và kiểm thử mới.
+- Các nguyên tắc bắt buộc theo báo cáo: giữ dữ liệu kho theo chủ sở hữu; không tự quy đổi đơn vị không đủ căn cứ; AI chỉ tạo ứng viên, backend phải kiểm tra cấu trúc/tổng lượng và tính kcal từ dữ liệu dinh dưỡng có nguồn; lưu thực đơn không tự trừ kho; mọi tự điền từ QR, giọng nói hoặc tra cứu cần người dùng xác nhận.
+
+### 2026-11-20 — đối chiếu và sửa sai lệch mã nguồn theo báo cáo
+
+- Rà soát backend, frontend, schema, cấu hình PWA và kiểm thử hiện có. Giữ nguyên các phần báo cáo đã phân loại là thiết kế mở rộng: QR, giọng nói, tự tính BMR/TDEE, công thức V1 có định lượng được thẩm định và đồng bộ kho ngoại tuyến.
+- Đã sửa bốn sai lệch có bằng chứng: loại bản ghi hết hạn khỏi gợi ý/lưu thực đơn; bỏ tự liên kết thực phẩm với dữ liệu dinh dưỡng chỉ dựa vào tên trùng; dùng cùng quy tắc làm tròn kcal cho từng món và tổng thực đơn; hiển thị ngày thực đơn đã lưu theo `dd/MM/yyyy`.
+- Xác minh: `npm.cmd test` trong `backend` đạt 11/11; `node --check src/controllers/meal-plan.controller.js` và `node --check src/services/ai.service.js` thành công; `npm.cmd run build -- --configuration development` trong `frontend` thành công. Mở frontend cục bộ bằng browser QA và accessibility snapshot của màn hình đăng nhập hợp lệ; không tạo tài khoản/dữ liệu QA để đi sâu sau đăng nhập.
+- Còn mở: chưa có integration test PostgreSQL cho truy vấn loại hạn dùng hoặc transaction lưu thực đơn; `inventory_items.user_id` chưa thể đặt `NOT NULL` an toàn nếu chưa kiểm kê dữ liệu cũ; DLPL fallback chưa đủ metadata nguồn để gọi là dữ liệu dinh dưỡng có truy xuất hoàn chỉnh; UI mới chỉ liệt kê chứ chưa mở chi tiết thực đơn đã lưu.
+
 - Team Lead chủ động cập nhật `PROGRESS.md` sau mỗi phiên đáng kể theo quy tắc ở **Tổng quan dự án**, không cần chờ nhắc lại.
 - Trước khi thay đổi chức năng, kiểm tra vị trí mã hiện tại trong `frontend/src/app/features/*`, `frontend/src/app/core/services` và `backend/src/*`; không dựa vào đường dẫn cũ trong nhật ký.
 - Khi chạy lại runtime, ghi ngày, cấu hình đã dùng (không kèm secret), lệnh/các bước, kết quả, dữ liệu test đã dọn hay chưa, và cập nhật các mục ưu tiên/vấn đề tồn đọng tương ứng.

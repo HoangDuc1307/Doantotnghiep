@@ -22,7 +22,6 @@ export class DashboardComponent implements OnInit {
   suggestionSummary = '';
   mealSuggestions: Meal[] = [];
   unverifiedItems: UnverifiedItem[] = [];
-  nutritionPreparation = '';
   savingPlan = false;
   planSaveMessage = '';
   planSaveError = '';
@@ -63,21 +62,23 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  planDateLabel(value: string): string {
+    const [year, month, day] = value.split('-');
+    return year && month && day ? `${day}/${month}/${year}` : value;
+  }
+
   async generateSuggestion(): Promise<void> {
     if (this.generatingSuggestion) return;
     this.generatingSuggestion = true;
     this.suggestion = '';
     this.suggestionError = '';
     this.suggestionSummary = '';
-    this.nutritionPreparation = '';
     this.mealSuggestions = [];
     this.unverifiedItems = [];
     this.planSaveMessage = '';
     this.planSaveError = '';
     this.changeDetector.markForCheck();
     try {
-      const mappedCount = await this.autoMapFoodsForEstimate();
-      if (mappedCount) this.nutritionPreparation = `Đã tự ghép khớp chính xác ${mappedCount} thực phẩm với dữ liệu dinh dưỡng Việt Nam.`;
       const result = await this.inventory.suggestMeals();
       this.suggestion = result.suggestion;
       this.mealSuggestions = result.meals;
@@ -109,28 +110,6 @@ export class DashboardComponent implements OnInit {
       this.savingPlan = false;
       this.changeDetector.markForCheck();
     }
-  }
-
-  private async autoMapFoodsForEstimate(): Promise<number> {
-    let mappedCount = 0;
-    // shortcut: map only three new foods per suggestion to respect DLPL free-tier rate limits; expand when quota-aware batching exists.
-    for (const item of this.items.filter((candidate) => !candidate.food_id).slice(0, 3)) {
-      try {
-        const matches = (await this.inventory.searchFoods(item.name)).filter((food) =>
-          food.description.trim().normalize('NFC').toLocaleLowerCase('vi') === item.name.trim().normalize('NFC').toLocaleLowerCase('vi'),
-        );
-        if (matches.length !== 1) continue;
-        const selectedFood = await this.inventory.selectFood(matches[0].id);
-        const updated = await this.inventory.update(item.id, { ...item, food_id: selectedFood.id });
-        const nextItems = this.items.map((candidate) => candidate.id === updated.id ? { ...candidate, ...updated, food_description: selectedFood.description } : candidate);
-        this.items = nextItems;
-        this.itemsUpdated.emit(nextItems);
-        mappedCount += 1;
-      } catch {
-        // A missing nutrition match only lowers confidence; it must not prevent a meal suggestion.
-      }
-    }
-    return mappedCount;
   }
 
   private async loadSavedPlans(): Promise<void> {

@@ -8,6 +8,7 @@ export async function suggest(request, response, next) {
         `SELECT i.id, i.name, i.quantity, i.unit, i.food_id, f.energy_kcal_per_100g
          FROM inventory_items i LEFT JOIN foods f ON f.id = i.food_id
          WHERE i.user_id = $1 AND i.quantity > 0
+           AND (i.expiry_date IS NULL OR i.expiry_date >= CURRENT_DATE)
          ORDER BY i.expiry_date ASC NULLS LAST, i.name ASC LIMIT 15`,
         [request.user.id],
       ),
@@ -97,7 +98,9 @@ export async function create(request, response, next) {
       client.query(
         `SELECT i.id, i.name, i.quantity, i.unit, i.food_id, f.energy_kcal_per_100g
          FROM inventory_items i LEFT JOIN foods f ON f.id = i.food_id
-         WHERE i.user_id = $1 AND i.quantity > 0 FOR SHARE OF i`,
+         WHERE i.user_id = $1 AND i.quantity > 0
+           AND (i.expiry_date IS NULL OR i.expiry_date >= CURRENT_DATE)
+         FOR SHARE OF i`,
         [request.user.id],
       ),
       client.query('SELECT daily_calorie_target FROM users WHERE id = $1', [request.user.id]),
@@ -106,6 +109,10 @@ export async function create(request, response, next) {
     if (!calorieTarget) {
       await client.query('ROLLBACK');
       return response.status(400).json({ message: 'Hãy thiết lập mục tiêu năng lượng trước khi lưu thực đơn.' });
+    }
+    if (!itemsResult.rowCount) {
+      await client.query('ROLLBACK');
+      return response.status(400).json({ message: 'Kho không còn thực phẩm có thể dùng để lưu thực đơn.' });
     }
     const inventory = itemsResult.rows.map((item) => ({
       id: item.id, name: item.name, unit: item.unit, availableQuantity: Number(item.quantity), foodId: item.food_id,
@@ -136,11 +143,10 @@ export async function create(request, response, next) {
           [recipeResult.rows[0].id, line + 1, foodId, ingredient.quantity, ingredient.unit],
         );
       }
-      const energySnapshot = meal.ingredients.reduce((sum, ingredient) => sum + (ingredient.kcal || 0), 0);
       await client.query(
         `INSERT INTO meal_plan_items (plan_id, line_no, recipe_id, meal_slot, servings, energy_snapshot)
          VALUES ($1, $2, $3, $4, 1, $5)`,
-        [planResult.rows[0].id, index + 1, recipeResult.rows[0].id, mealSlot(index), energySnapshot],
+        [planResult.rows[0].id, index + 1, recipeResult.rows[0].id, mealSlot(index), meal.energySnapshot],
       );
     }
     await client.query('COMMIT');

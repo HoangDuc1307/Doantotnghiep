@@ -20,13 +20,13 @@ export function verifyMealPlan(plan, items, calorieTarget) {
   if (!Array.isArray(plan?.meals) || plan.meals.length === 0 || plan.meals.length > 4) throw new AiProviderError('Dịch vụ AI không trả về thực đơn hợp lệ.');
   const available = new Map(items.map((item) => [item.id, item]));
   const requiredQuantities = new Map();
-  let totalKcal = 0;
   let caloriesComplete = true;
   const unverifiedItems = new Map();
   const meals = plan.meals.map((meal) => {
     if (typeof meal?.name !== 'string' || !meal.name.trim() || !Array.isArray(meal.ingredients) || !Array.isArray(meal.steps)) {
       throw new AiProviderError('Dịch vụ AI trả về món ăn thiếu dữ liệu.');
     }
+    let mealKcal = 0;
     const ingredients = meal.ingredients.map((ingredient) => {
       const item = available.get(ingredient?.inventoryId);
       const quantity = Number(ingredient?.quantity);
@@ -42,7 +42,7 @@ export function verifyMealPlan(plan, items, calorieTarget) {
       const grams = gramsFor(item, quantity);
       if (item.energyKcalPer100g !== null && grams !== null) {
         kcal = item.energyKcalPer100g * grams / 100;
-        totalKcal += kcal;
+        mealKcal += kcal;
       } else {
         caloriesComplete = false;
         unverifiedItems.set(item.id, { id: item.id, name: item.name });
@@ -51,9 +51,9 @@ export function verifyMealPlan(plan, items, calorieTarget) {
     });
     const steps = meal.steps.filter((step) => typeof step === 'string' && step.trim()).slice(0, 6);
     if (!ingredients.length || !steps.length) throw new AiProviderError('Dịch vụ AI trả về cách nấu không hợp lệ.');
-    return { name: meal.name.trim().slice(0, 120), ingredients, steps };
+    return { name: meal.name.trim().slice(0, 120), ingredients, steps, energySnapshot: Math.round(mealKcal) };
   });
-  const roundedTotal = caloriesComplete ? Math.round(totalKcal) : null;
+  const roundedTotal = caloriesComplete ? meals.reduce((sum, meal) => sum + meal.energySnapshot, 0) : null;
   const suggestion = meals.map((meal) => `${meal.name}\nNguyên liệu: ${meal.ingredients.map((item) => `${item.name} ${item.quantity} ${item.unit}`).join(', ')}\nCách nấu: ${meal.steps.map((step, index) => `${index + 1}. ${step}`).join(' ')}`).join('\n\n');
   return { suggestion, meals, totalKcal: roundedTotal, targetKcal: calorieTarget, differenceKcal: roundedTotal === null ? null : Math.abs(roundedTotal - calorieTarget), unverifiedItems: [...unverifiedItems.values()], confidence: caloriesComplete ? 'estimated' : 'partial' };
 }

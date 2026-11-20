@@ -39,3 +39,15 @@ test('verifyMealPlan rejects exceeding stock and keeps count-based inventory par
   assert.equal(partial.totalKcal, null);
   assert.deepEqual(partial.unverifiedItems, [{ id: 'egg', name: 'Trứng' }]);
 });
+
+test('verifyMealPlan uses the same per-meal rounding for snapshots and total kcal', () => {
+  const result = verifyMealPlan({
+    meals: [
+      { name: 'Món một', ingredients: [{ inventoryId: 'rice', quantity: 1, unit: 'g' }], steps: ['Nấu.'] },
+      { name: 'Món hai', ingredients: [{ inventoryId: 'rice', quantity: 1, unit: 'g' }], steps: ['Nấu.'] },
+    ],
+  }, [{ id: 'rice', name: 'Gạo', unit: 'g', availableQuantity: 2, energyKcalPer100g: 150 }], 2000);
+
+  assert.deepEqual(result.meals.map((meal) => meal.energySnapshot), [2, 2]);
+  assert.equal(result.totalKcal, 4);
+});
