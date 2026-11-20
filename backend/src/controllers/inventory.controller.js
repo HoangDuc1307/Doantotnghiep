@@ -1,5 +1,5 @@
 import { pool } from '../db/pool.js';
-import { findExactNutritionFood } from './food.controller.js';
+import { findExactNutritionFood, normalizeFoodName } from './food.controller.js';
 
 function readItem(body) {
   body = body && typeof body === 'object' ? body : {};
@@ -60,12 +60,21 @@ export async function update(request, response, next) {
   const parsed = readItem(request.body);
   if (parsed.error) return response.status(400).json({ message: parsed.error });
   try {
+    const existing = await pool.query(
+      'SELECT name FROM inventory_items WHERE id = $1 AND user_id = $2',
+      [request.params.id, request.user.id],
+    );
+    if (!existing.rowCount) return response.status(404).json({ message: 'Không tìm thấy thực phẩm.' });
+    const values = [...parsed.values];
+    if (normalizeFoodName(existing.rows[0].name) !== normalizeFoodName(values[0])) {
+      // The old profile describes the old name; a renamed item must be resolved again or left unlinked.
+      values[4] = await findExactNutritionFood(values[0]).then((food) => food?.id || null).catch(() => null);
+    }
     const result = await pool.query(
       `UPDATE inventory_items SET name = $1, quantity = $2, unit = $3, expiry_date = $4, food_id = $5, updated_at = NOW()
        WHERE id = $6 AND user_id = $7 RETURNING id, name, quantity, unit, expiry_date, food_id, created_at, updated_at`,
-      [...parsed.values, request.params.id, request.user.id],
+      [...values, request.params.id, request.user.id],
     );
-    if (!result.rowCount) return response.status(404).json({ message: 'Không tìm thấy thực phẩm.' });
     response.json(result.rows[0]);
   } catch (error) {
     if (error.code === '22P02') return response.status(400).json({ message: 'Mã thực phẩm không hợp lệ.' });

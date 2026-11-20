@@ -1,5 +1,5 @@
 import { pool } from '../db/pool.js';
-import { findExactNutritionFood } from './food.controller.js';
+import { findExactNutritionFood, readEnergyKcal } from './food.controller.js';
 import { AiConfigurationError, AiProviderError, generateMealSuggestion, verifyMealPlan } from '../services/ai.service.js';
 
 export async function suggest(request, response, next) {
@@ -19,7 +19,7 @@ export async function suggest(request, response, next) {
     const items = itemsResult.rows.map((item) => {
       return {
         id: item.id, name: item.name, unit: item.unit, availableQuantity: Number(item.quantity), foodId: item.food_id,
-        energyKcalPer100g: item.energy_kcal_per_100g === null ? null : Number(item.energy_kcal_per_100g),
+        energyKcalPer100g: readEnergyKcal(item.energy_kcal_per_100g),
       };
     });
     const calorieTarget = userResult.rows[0]?.daily_calorie_target;
@@ -54,7 +54,7 @@ async function linkSelectedIngredients(plan, items, userId) {
     );
     if (linked.rowCount) {
       item.foodId = food.id;
-      item.energyKcalPer100g = Number(food.energy_kcal_per_100g);
+      item.energyKcalPer100g = readEnergyKcal(food.energy_kcal_per_100g);
     }
   }
 }
@@ -143,7 +143,7 @@ export async function create(request, response, next) {
     }
     const inventory = itemsResult.rows.map((item) => ({
       id: item.id, name: item.name, unit: item.unit, availableQuantity: Number(item.quantity), foodId: item.food_id,
-      energyKcalPer100g: item.energy_kcal_per_100g === null ? null : Number(item.energy_kcal_per_100g),
+      energyKcalPer100g: readEnergyKcal(item.energy_kcal_per_100g),
     }));
     const checked = verifyMealPlan({ meals: request.body.meals }, inventory, calorieTarget);
     if (checked.totalKcal === null) {

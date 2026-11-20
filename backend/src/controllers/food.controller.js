@@ -8,11 +8,18 @@ export function isReferenceSourceId(value) {
   return /^(?:SMILING2013|VN2007|USDA_SR2018):[A-Za-z0-9_-]+$/.test(value);
 }
 
+export function readEnergyKcal(value) {
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  const energy = Number(value);
+  return Number.isFinite(energy) && energy >= 0 ? energy : null;
+}
+
 export function toNutritionFood(food) {
   const id = typeof food?.id === 'string' ? food.id.trim() : '';
   const description = typeof food?.name === 'string' ? food.name.trim() : '';
-  const energy = Number(food?.energy_kcal_per_100g);
-  return id && description && Number.isFinite(energy) && energy >= 0
+  const energy = readEnergyKcal(food?.energy_kcal_per_100g);
+  return id && description && energy !== null
     ? { id, description, energy_kcal_per_100g: energy }
     : null;
 }
@@ -49,14 +56,26 @@ async function getDlpl(path) {
 
 async function saveDlplFood(food) {
   const result = await pool.query(
-    `INSERT INTO foods (fdc_id, description, energy_kcal_per_100g, source, source_id, source_code, source_version, retrieved_at)
-     VALUES (NULL, $1, $2, $3, $4, $4, 'DLPL API', NOW())
+    `INSERT INTO foods (fdc_id, description, base_quantity, base_unit, energy_kcal_per_100g,
+                        source, source_id, source_code, source_version, source_url, source_locator, quality_flags, retrieved_at)
+     VALUES (NULL, $1, 100, 'g', $2, $3, $4, $4, 'DLPL API', $5, $6, 'auto_exact_name;energy_per_100g', NOW())
      ON CONFLICT (source, source_code) WHERE source_code IS NOT NULL
-     DO UPDATE SET description = EXCLUDED.description, energy_kcal_per_100g = EXCLUDED.energy_kcal_per_100g
-     RETURNING id, description, energy_kcal_per_100g`,
-    [food.description, food.energy_kcal_per_100g, source, food.id],
+     DO UPDATE SET description = EXCLUDED.description, base_quantity = EXCLUDED.base_quantity, base_unit = EXCLUDED.base_unit,
+       energy_kcal_per_100g = EXCLUDED.energy_kcal_per_100g, source_version = EXCLUDED.source_version,
+       source_url = EXCLUDED.source_url, source_locator = EXCLUDED.source_locator, quality_flags = EXCLUDED.quality_flags,
+       retrieved_at = EXCLUDED.retrieved_at
+     RETURNING id, description, base_quantity, base_unit, energy_kcal_per_100g, source, source_id, source_version, source_url, source_locator, retrieved_at`,
+    [food.description, food.energy_kcal_per_100g, source, food.id, baseUrl, `/nutrition-foods/${food.id}`],
   );
   return result.rows[0];
+}
+
+function toStoredNutritionFood(food) {
+  return toNutritionFood({
+    id: food?.id,
+    name: food?.description,
+    energy_kcal_per_100g: food?.energy_kcal_per_100g,
+  });
 }
 
 export async function findExactNutritionFood(name) {
@@ -64,10 +83,10 @@ export async function findExactNutritionFood(name) {
   if (!normalizedName) return null;
   const local = await pool.query(
     `SELECT id, description, energy_kcal_per_100g
-     FROM foods WHERE source_id ~ '^(SMILING2013|VN2007|USDA_SR2018):'`,
+     FROM foods`,
   );
-  const localMatch = findSingleExactFood(local.rows, normalizedName);
-  if (localMatch) return { ...localMatch, energy_kcal_per_100g: Number(localMatch.energy_kcal_per_100g) };
+  const localMatch = findSingleExactFood(local.rows.map(toStoredNutritionFood).filter(Boolean), normalizedName);
+  if (localMatch) return localMatch;
 
   const searched = await getDlpl(`/nutrition-foods?q=${encodeURIComponent(name)}&per_page=10`);
   const searchedMatch = findSingleExactFood(Array.isArray(searched) ? searched.map(toNutritionFood).filter(Boolean) : [], normalizedName);

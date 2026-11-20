@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { findSingleExactFood, isReferenceSourceId, toNutritionFood } from './food.controller.js';
+import { findSingleExactFood, isReferenceSourceId, readEnergyKcal, toNutritionFood } from './food.controller.js';
 import { parseNutritionReference } from '../../scripts/import-pwa-nutrition-reference.js';
 import { readFile } from 'node:fs/promises';
 
@@ -10,6 +10,16 @@ test('toNutritionFood only accepts a complete Vietnamese nutrition record', () =
     id: 'vfd_12345678', description: 'Trứng gà', energy_kcal_per_100g: 166,
   });
   assert.equal(toNutritionFood({ id: 'vfd_12345678', name: 'Trứng gà' }), null);
+});
+
+test('readEnergyKcal keeps an actual zero and rejects missing or invalid raw values', () => {
+  assert.equal(readEnergyKcal(0), 0);
+  assert.equal(readEnergyKcal(' 0 '), 0);
+  for (const value of [null, undefined, '', '   ', true, false, -1, Number.NaN, Infinity, -Infinity]) {
+    assert.equal(readEnergyKcal(value), null);
+  }
+  assert.equal(toNutritionFood({ id: 'zero-kcal', name: 'Nước', energy_kcal_per_100g: 0 })?.energy_kcal_per_100g, 0);
+  assert.equal(toNutritionFood({ id: 'missing-kcal', name: 'Nước', energy_kcal_per_100g: null }), null);
 });
 
 test('exact nutrition matching does not substitute lean pork for pork belly', () => {
