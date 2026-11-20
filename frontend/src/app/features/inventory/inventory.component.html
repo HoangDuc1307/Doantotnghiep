@@ -80,7 +80,7 @@
         <label class="form-field">Hạn sử dụng <span class="optional-label">(có thể bổ sung sau)</span><input type="date" [(ngModel)]="form.expiry_date" name="expiry" /></label>
         <div class="form-field" aria-live="polite">
           <span>Dữ liệu dinh dưỡng <span class="optional-label">(chỉ dùng khi bạn xác nhận)</span></span>
-          @if (form.food_description) { <span class="field-hint">Đã chọn: {{ form.food_description }}</span> }
+          @if (form.food_description) { <span class="field-hint">Đã chọn: {{ form.food_description }}</span><button type="button" class="text-button" (click)="clearNutrition()">Bỏ liên kết</button> }
           <button type="button" class="secondary-button" (click)="searchNutrition()" [disabled]="searchingNutrition">{{ searchingNutrition ? 'Đang tra cứu…' : 'Tra cứu và chọn thực phẩm' }}</button>
           @if (nutritionError) { <span class="field-error" role="alert">{{ nutritionError }}</span> }
           @if (nutritionResults.length) { <div class="nutrition-results">@for (food of nutritionResults; track food.id) { <button type="button" class="text-button" (click)="selectNutrition(food)" [disabled]="searchingNutrition">{{ food.description }} · {{ food.energy_kcal_per_100g }} kcal/100 g</button> }</div> }

@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { findExactNutritionFood } from './food.controller.js';
 
 function readItem(body) {
   body = body && typeof body === 'object' ? body : {};
@@ -41,10 +42,15 @@ export async function create(request, response, next) {
   const parsed = readItem(request.body);
   if (parsed.error) return response.status(400).json({ message: parsed.error });
   try {
+    const values = [...parsed.values];
+    if (!values[4]) {
+      // A lookup failure must not prevent a valid inventory record from being saved.
+      values[4] = await findExactNutritionFood(values[0]).then((food) => food?.id || null).catch(() => null);
+    }
     const result = await pool.query(
       `INSERT INTO inventory_items (name, quantity, unit, expiry_date, food_id, user_id)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, quantity, unit, expiry_date, food_id, created_at, updated_at`, [...parsed.values, request.user.id],
+       RETURNING id, name, quantity, unit, expiry_date, food_id, created_at, updated_at`, [...values, request.user.id],
     );
     response.status(201).json(result.rows[0]);
   } catch (error) { next(error); }

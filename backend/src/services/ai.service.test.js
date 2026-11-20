@@ -20,7 +20,7 @@ test('buildMealPrompt requires the exact inventory unit and leaves calorie math 
 test('verifyMealPlan calculates kcal only for g or kg inventory and retains inventory identifiers', () => {
   const items = [{ id: 'pork', name: 'Thịt lợn', unit: 'g', availableQuantity: 200, energyKcalPer100g: 109 }];
   const result = verifyMealPlan({ meals: [{ name: 'Thịt luộc', ingredients: [{ inventoryId: 'pork', quantity: 150, unit: 'g' }], steps: ['Luộc chín.'] }] }, items, 2000);
-  assert.equal(result.totalKcal, 164);
+  assert.equal(result.totalKcal, 163.5);
   assert.equal(result.confidence, 'estimated');
   assert.equal(result.meals[0].ingredients[0].inventoryId, 'pork');
   const kilogramResult = verifyMealPlan(
@@ -37,10 +37,30 @@ test('verifyMealPlan rejects exceeding stock and keeps count-based inventory par
   assert.throws(() => verifyMealPlan({ meals: [{ name: 'Sai đơn vị', ingredients: [{ inventoryId: 'pork', quantity: 1, unit: 'kg' }], steps: ['Nấu.'] }] }, grams, 2000));
   const partial = verifyMealPlan({ meals: [{ name: 'Trứng', ingredients: [{ inventoryId: 'egg', quantity: 1, unit: 'quả' }], steps: ['Nấu.'] }] }, [{ id: 'egg', name: 'Trứng', unit: 'quả', availableQuantity: 2, energyKcalPer100g: 143 }], 2000);
   assert.equal(partial.totalKcal, null);
+  assert.equal(partial.knownKcal, null);
   assert.deepEqual(partial.unverifiedItems, [{ id: 'egg', name: 'Trứng' }]);
 });
 
-test('verifyMealPlan uses the same per-meal rounding for snapshots and total kcal', () => {
+test('verifyMealPlan keeps known kcal separate when 300 g pork belly has no verified profile', () => {
+  const result = verifyMealPlan({ meals: [{
+    name: 'Thịt và cơm',
+    ingredients: [
+      { inventoryId: 'rice', quantity: 100, unit: 'g' },
+      { inventoryId: 'belly', quantity: 300, unit: 'g' },
+    ],
+    steps: ['Nấu chín.'],
+  }] }, [
+    { id: 'rice', name: 'Gạo', unit: 'g', availableQuantity: 100, energyKcalPer100g: 150 },
+    { id: 'belly', name: 'Thịt ba chỉ', unit: 'g', availableQuantity: 300, energyKcalPer100g: null },
+  ], 2000);
+
+  assert.equal(result.totalKcal, null);
+  assert.equal(result.knownKcal, 150);
+  assert.equal(result.differenceKcal, null);
+  assert.deepEqual(result.unverifiedItems, [{ id: 'belly', name: 'Thịt ba chỉ' }]);
+});
+
+test('verifyMealPlan keeps kcal snapshots precise before the UI rounds them', () => {
   const result = verifyMealPlan({
     meals: [
       { name: 'Món một', ingredients: [{ inventoryId: 'rice', quantity: 1, unit: 'g' }], steps: ['Nấu.'] },
@@ -48,6 +68,6 @@ test('verifyMealPlan uses the same per-meal rounding for snapshots and total kca
     ],
   }, [{ id: 'rice', name: 'Gạo', unit: 'g', availableQuantity: 2, energyKcalPer100g: 150 }], 2000);
 
-  assert.deepEqual(result.meals.map((meal) => meal.energySnapshot), [2, 2]);
-  assert.equal(result.totalKcal, 4);
+  assert.deepEqual(result.meals.map((meal) => meal.energySnapshot), [1.5, 1.5]);
+  assert.equal(result.totalKcal, 3);
 });

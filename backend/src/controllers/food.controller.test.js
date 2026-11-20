@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isReferenceSourceId, toNutritionFood } from './food.controller.js';
+import { findSingleExactFood, isReferenceSourceId, toNutritionFood } from './food.controller.js';
 import { parseNutritionReference } from '../../scripts/import-pwa-nutrition-reference.js';
 import { readFile } from 'node:fs/promises';
 
@@ -10,6 +10,12 @@ test('toNutritionFood only accepts a complete Vietnamese nutrition record', () =
     id: 'vfd_12345678', description: 'Trứng gà', energy_kcal_per_100g: 166,
   });
   assert.equal(toNutritionFood({ id: 'vfd_12345678', name: 'Trứng gà' }), null);
+});
+
+test('exact nutrition matching does not substitute lean pork for pork belly', () => {
+  const foods = [{ id: 'lean-pork', description: 'Thịt lợn nạc', energy_kcal_per_100g: 139 }];
+  assert.equal(findSingleExactFood(foods, 'thịt ba chỉ'), null);
+  assert.deepEqual(findSingleExactFood(foods, '  THỊT  LỢN NẠC '), foods[0]);
 });
 
 test('reference CSV has 28 valid 100 g nutrition records with source metadata', async () => {

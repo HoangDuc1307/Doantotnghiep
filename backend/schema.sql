@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS meal_plans (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   plan_date DATE NOT NULL,
   target_kcal NUMERIC(10, 2) NOT NULL CHECK (target_kcal > 0),
-  total_kcal NUMERIC(12, 2) NOT NULL CHECK (total_kcal >= 0),
+  total_kcal NUMERIC(12, 4) NOT NULL CHECK (total_kcal >= 0),
   status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('draft', 'confirmed')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -132,6 +132,9 @@ CREATE TABLE IF NOT EXISTS meal_plan_items (
   recipe_id UUID NOT NULL REFERENCES recipes(id),
   meal_slot TEXT NOT NULL CHECK (meal_slot IN ('breakfast', 'lunch', 'dinner', 'snack')),
   servings NUMERIC(8, 2) NOT NULL CHECK (servings > 0),
-  energy_snapshot NUMERIC(12, 2) NOT NULL CHECK (energy_snapshot >= 0),
+  energy_snapshot NUMERIC(12, 4) NOT NULL CHECK (energy_snapshot >= 0),
   PRIMARY KEY (plan_id, line_no)
 );
+
+ALTER TABLE meal_plans ALTER COLUMN total_kcal TYPE NUMERIC(12, 4);
+ALTER TABLE meal_plan_items ALTER COLUMN energy_snapshot TYPE NUMERIC(12, 4);

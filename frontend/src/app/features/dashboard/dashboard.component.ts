@@ -1,6 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { InventoryItem, InventoryService, Meal, SavedMealPlan, UnverifiedItem } from '../../core/services/inventory.service';
+import { InventoryItem, InventoryService, Meal, SavedMealPlan, SavedMealPlanDetail, UnverifiedItem } from '../../core/services/inventory.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -26,6 +26,9 @@ export class DashboardComponent implements OnInit {
   planSaveMessage = '';
   planSaveError = '';
   savedPlans: SavedMealPlan[] = [];
+  loadingPlanDetail = false;
+  planDetail: SavedMealPlanDetail | null = null;
+  planDetailError = '';
 
   constructor(
     private readonly inventory: InventoryService,
@@ -67,6 +70,10 @@ export class DashboardComponent implements OnInit {
     return year && month && day ? `${day}/${month}/${year}` : value;
   }
 
+  mealSlotLabel(value: SavedMealPlanDetail['meals'][number]['meal_slot']): string {
+    return { breakfast: 'Bữa sáng', lunch: 'Bữa trưa', dinner: 'Bữa tối', snack: 'Bữa phụ' }[value];
+  }
+
   async generateSuggestion(): Promise<void> {
     if (this.generatingSuggestion) return;
     this.generatingSuggestion = true;
@@ -85,7 +92,9 @@ export class DashboardComponent implements OnInit {
       this.unverifiedItems = result.unverifiedItems;
       this.suggestionSummary = result.confidence === 'estimated'
         ? `Ước tính ${result.totalKcal?.toLocaleString('vi-VN')} kcal · chênh ${result.differenceKcal?.toLocaleString('vi-VN')} kcal so với mục tiêu ${result.targetKcal.toLocaleString('vi-VN')} kcal. Máy chủ tính từ lượng g hoặc kg AI đề xuất trong giới hạn kho.`
-        : `Chưa đủ dữ liệu để ước tính kcal cho: ${result.unverifiedItems.map((item) => item.name).join(', ')}.`;
+        : result.knownKcal === null
+          ? `Chưa có phần kcal nào đủ căn cứ. Còn thiếu dữ liệu cho: ${result.unverifiedItems.map((item) => item.name).join(', ')}. Không đối chiếu gợi ý này với mục tiêu kcal.`
+          : `Đã tính được ${result.knownKcal.toLocaleString('vi-VN')} kcal từ nguyên liệu có dữ liệu; còn thiếu: ${result.unverifiedItems.map((item) => item.name).join(', ')}. Không đối chiếu gợi ý này với mục tiêu kcal.`;
     } catch (error) {
       this.suggestionError = error instanceof Error ? error.message : 'Chưa thể tạo gợi ý.';
     } finally {
@@ -110,6 +119,27 @@ export class DashboardComponent implements OnInit {
       this.savingPlan = false;
       this.changeDetector.markForCheck();
     }
+  }
+
+  async openPlanDetail(id: string): Promise<void> {
+    if (this.loadingPlanDetail) return;
+    this.loadingPlanDetail = true;
+    this.planDetail = null;
+    this.planDetailError = '';
+    this.changeDetector.markForCheck();
+    try {
+      this.planDetail = await this.inventory.readMealPlan(id);
+    } catch (error) {
+      this.planDetailError = error instanceof Error ? error.message : 'Chưa thể mở thực đơn.';
+    } finally {
+      this.loadingPlanDetail = false;
+      this.changeDetector.markForCheck();
+    }
+  }
+
+  closePlanDetail(): void {
+    this.planDetail = null;
+    this.planDetailError = '';
   }
 
   private async loadSavedPlans(): Promise<void> {

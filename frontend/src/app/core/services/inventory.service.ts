@@ -52,6 +52,7 @@ export interface MealSuggestion {
   suggestion: string;
   model: string;
   totalKcal: number | null;
+  knownKcal: number | null;
   targetKcal: number;
   differenceKcal: number | null;
   confidence: 'estimated' | 'partial';
@@ -83,6 +84,32 @@ export interface SavedMealPlan {
   total_kcal: number;
   status: 'confirmed';
   meal_names: string[];
+}
+
+export interface SavedMealPlanDetail {
+  id: string;
+  plan_date: string;
+  target_kcal: number;
+  total_kcal: number;
+  status: 'confirmed';
+  meals: SavedMealPlanMeal[];
+}
+
+export interface SavedMealPlanMeal {
+  line_no: number;
+  meal_slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  servings: number;
+  energy_snapshot: number;
+  name: string;
+  instructions: string | null;
+  ingredients: SavedMealPlanIngredient[];
+}
+
+export interface SavedMealPlanIngredient {
+  line_no: number;
+  quantity: number;
+  unit: string;
+  food_name: string;
 }
 
 interface AuthResponse { user: Account; token: string; }
@@ -120,6 +147,7 @@ export class InventoryService {
     return this.request('/meal-plans/suggestions', { method: 'POST' });
   }
   listMealPlans(): Promise<SavedMealPlan[]> { return this.request('/meal-plans'); }
+  readMealPlan(id: string): Promise<SavedMealPlanDetail> { return this.request(`/meal-plans/${id}`); }
   saveMealPlan(planDate: string, meals: Meal[]): Promise<SavedMealPlan> {
     return this.request('/meal-plans', { method: 'POST', body: JSON.stringify({ plan_date: planDate, meals }) });
   }

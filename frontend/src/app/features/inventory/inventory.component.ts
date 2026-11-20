@@ -267,6 +267,12 @@ export class InventoryComponent implements OnInit {
     this.nutritionError = '';
   }
 
+  clearNutrition(): void {
+    this.form = { ...this.form, food_id: null, food_description: null };
+    this.nutritionResults = [];
+    this.nutritionError = '';
+  }
+
   async searchNutrition(): Promise<void> {
     const name = this.form.name.trim();
     if (name.length < 2 || this.searchingNutrition) {

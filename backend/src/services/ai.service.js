@@ -6,7 +6,7 @@ export class AiProviderError extends Error {}
 
 export function buildMealPrompt({ items, calorieTarget }) {
   return {
-    system: `Bạn là trợ lý nấu ăn thực tế. Trả lời duy nhất JSON theo dạng {"meals":[{"name":"...","ingredients":[{"inventoryId":"id có sẵn","quantity":number,"unit":"đơn vị kho"}],"steps":["..."]}]}. Tạo 1 đến 3 món đơn giản, tối đa 4 nguyên liệu và 3 bước mỗi món. Chỉ dùng thực phẩm trong kho. Gộp món nếu kho ít; nếu không đủ nguyên liệu thì vẫn gợi ý món đơn giản nhất từ những gì có, không bịa món hàng ngoài kho. Lượng từng dòng phải dương, đúng đơn vị kho và tổng lượng một thực phẩm qua tất cả món không vượt availableQuantity. Không đổi đơn vị. Không tính hay ghi kcal. Tiếng Việt ngắn gọn. Mục tiêu năng lượng chỉ là tham khảo, không cần đạt chính xác.`,
+    system: `Bạn là trợ lý nấu ăn thực tế. Trả lời duy nhất JSON theo dạng {"meals":[{"name":"...","ingredients":[{"inventoryId":"id có sẵn","quantity":number,"unit":"đơn vị kho"}],"steps":["..."]}]}. Tạo 1 đến 3 món đơn giản, tối đa 4 nguyên liệu và 3 bước mỗi món. Chỉ dùng thực phẩm trong kho. Gộp món nếu kho ít; nếu không đủ nguyên liệu thì vẫn gợi ý món đơn giản nhất từ những gì có, không bịa món hàng ngoài kho. Lượng từng dòng phải dương, đúng đơn vị kho và tổng lượng một thực phẩm qua tất cả món không vượt availableQuantity. Không đổi đơn vị. Không tính hay ghi kcal. Nếu có thực phẩm thiếu kcal, vẫn có thể dùng nhưng không được coi chúng là 0 kcal hoặc tối ưu chúng theo mục tiêu. Tiếng Việt ngắn gọn. Mục tiêu năng lượng chỉ là tham khảo, không cần đạt chính xác.`,
     user: `Gợi ý vài món dễ nấu từ kho hiện có. Mục tiêu tham khảo: ${calorieTarget} kcal/ngày.\nKho:\n${JSON.stringify(items)}`,
   };
 }
@@ -21,6 +21,7 @@ export function verifyMealPlan(plan, items, calorieTarget) {
   const available = new Map(items.map((item) => [item.id, item]));
   const requiredQuantities = new Map();
   let caloriesComplete = true;
+  let knownEnergyIngredientCount = 0;
   const unverifiedItems = new Map();
   const meals = plan.meals.map((meal) => {
     if (typeof meal?.name !== 'string' || !meal.name.trim() || !Array.isArray(meal.ingredients) || !Array.isArray(meal.steps)) {
@@ -43,19 +44,25 @@ export function verifyMealPlan(plan, items, calorieTarget) {
       if (item.energyKcalPer100g !== null && grams !== null) {
         kcal = item.energyKcalPer100g * grams / 100;
         mealKcal += kcal;
+        knownEnergyIngredientCount += 1;
       } else {
         caloriesComplete = false;
         unverifiedItems.set(item.id, { id: item.id, name: item.name });
       }
-      return { inventoryId: item.id, name: item.name, quantity, unit: item.unit, kcal: kcal === null ? null : Math.round(kcal) };
+      return { inventoryId: item.id, name: item.name, quantity, unit: item.unit, kcal };
     });
     const steps = meal.steps.filter((step) => typeof step === 'string' && step.trim()).slice(0, 6);
     if (!ingredients.length || !steps.length) throw new AiProviderError('Dịch vụ AI trả về cách nấu không hợp lệ.');
-    return { name: meal.name.trim().slice(0, 120), ingredients, steps, energySnapshot: Math.round(mealKcal) };
+    return { name: meal.name.trim().slice(0, 120), ingredients, steps, energySnapshot: storedKcal(mealKcal) };
   });
-  const roundedTotal = caloriesComplete ? meals.reduce((sum, meal) => sum + meal.energySnapshot, 0) : null;
+  const knownKcal = storedKcal(meals.reduce((sum, meal) => sum + meal.energySnapshot, 0));
+  const totalKcal = caloriesComplete ? knownKcal : null;
   const suggestion = meals.map((meal) => `${meal.name}\nNguyên liệu: ${meal.ingredients.map((item) => `${item.name} ${item.quantity} ${item.unit}`).join(', ')}\nCách nấu: ${meal.steps.map((step, index) => `${index + 1}. ${step}`).join(' ')}`).join('\n\n');
-  return { suggestion, meals, totalKcal: roundedTotal, targetKcal: calorieTarget, differenceKcal: roundedTotal === null ? null : Math.abs(roundedTotal - calorieTarget), unverifiedItems: [...unverifiedItems.values()], confidence: caloriesComplete ? 'estimated' : 'partial' };
+  return { suggestion, meals, totalKcal, knownKcal: caloriesComplete || knownEnergyIngredientCount === 0 ? null : knownKcal, targetKcal: calorieTarget, differenceKcal: totalKcal === null ? null : Math.abs(totalKcal - calorieTarget), unverifiedItems: [...unverifiedItems.values()], confidence: caloriesComplete ? 'estimated' : 'partial' };
+}
+
+function storedKcal(value) {
+  return Math.round((value + Number.EPSILON) * 10_000) / 10_000;
 }
 
 function normalizeUnit(unit) {
@@ -104,5 +111,7 @@ export async function generateMealSuggestion(input) {
   try { result = await response.json(); } catch { throw new AiProviderError('Dịch vụ AI trả về phản hồi không hợp lệ.'); }
   const content = typeof result.choices?.[0]?.message?.content === 'string' ? result.choices[0].message.content : '';
   if (!content) throw new AiProviderError('Dịch vụ AI trả về gợi ý không hợp lệ.');
-  return { ...verifyMealPlan(parseJson(content), input.items, input.calorieTarget), model: result.model || model };
+  const plan = parseJson(content);
+  if (input.enrichPlan) await input.enrichPlan(plan);
+  return { ...verifyMealPlan(plan, input.items, input.calorieTarget), model: result.model || model };
 }

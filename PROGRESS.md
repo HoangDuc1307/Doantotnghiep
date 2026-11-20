@@ -393,6 +393,27 @@ Trạng thái dưới đây được đối chiếu với mã nguồn ngày 2026
 - Xác minh: `npm.cmd test` trong `backend` đạt 11/11; `node --check src/controllers/meal-plan.controller.js` và `node --check src/services/ai.service.js` thành công; `npm.cmd run build -- --configuration development` trong `frontend` thành công. Mở frontend cục bộ bằng browser QA và accessibility snapshot của màn hình đăng nhập hợp lệ; không tạo tài khoản/dữ liệu QA để đi sâu sau đăng nhập.
 - Còn mở: chưa có integration test PostgreSQL cho truy vấn loại hạn dùng hoặc transaction lưu thực đơn; `inventory_items.user_id` chưa thể đặt `NOT NULL` an toàn nếu chưa kiểm kê dữ liệu cũ; DLPL fallback chưa đủ metadata nguồn để gọi là dữ liệu dinh dưỡng có truy xuất hoàn chỉnh; UI mới chỉ liệt kê chứ chưa mở chi tiết thực đơn đã lưu.
 
+### 2026-11-20 — báo cáo bổ sung thiết kế Chương 2
+
+- So sánh báo cáo DOCX đang làm việc với bản tại `HEAD` sau commit `bf4d282`: nội dung tăng từ 411 lên 533 đoạn và từ 18 lên 24 bảng; bổ sung đầy đủ mục 2.5 (đề xuất thực đơn), 2.6 (giao diện) và 2.7 (tổng kết), cùng hình/bảng minh họa mới.
+- Báo cáo mới dùng bộ dữ liệu tham chiếu V1 gồm 28 hồ sơ và phạm vi 20 món, mô tả API/luồng lưu thực đơn hiện có, đồng thời ghi rõ các giới hạn QR, giọng nói, BMR/TDEE, offline và nguồn ngoài. Báo cáo cũng ghi nhận commit `bf4d282` đã loại thực phẩm hết hạn khỏi gợi ý/lưu thực đơn.
+- Chưa có phần thân thực tế cho Chương 3 hoặc Kết luận và hướng phát triển; các mục này vẫn chỉ nằm trong mục lục, nên không dùng làm bằng chứng triển khai hay kiểm thử.
+
+### 2026-11-20 — hiện thực các sai lệch nhỏ theo báo cáo mới
+
+- Thêm xem chi tiết thực đơn đã lưu trên Dashboard bằng API `GET /api/meal-plans/:id` hiện có; chi tiết hiển thị ngày, tổng/mục tiêu kcal, món, nguyên liệu và hướng dẫn. Không đổi route, schema API hay backend controller.
+- Biểu mẫu kho nay có nút bỏ liên kết dinh dưỡng đã chọn trước khi lưu, bảo đảm người dùng có thể rút lại `food_id` mà không cần đổi tên thực phẩm.
+- Kcal của từng món và kế hoạch được giữ đến bốn chữ số thập phân ở ranh giới lưu trữ; Angular mới làm tròn khi hiển thị. `schema.sql` mở rộng `total_kcal` và `energy_snapshot` lên `NUMERIC(12,4)`, nhưng chưa áp dụng thay đổi cấu trúc này trên PostgreSQL cục bộ.
+- Xác minh: backend `npm.cmd test` đạt 11/11; `node --check` cho service/controller thành công; Angular development build thành công. Browser QA mở được màn hình đăng nhập và accessibility snapshot hợp lệ; chưa tạo dữ liệu tài khoản để kiểm thử trực tiếp chi tiết thực đơn sau đăng nhập.
+
 - Team Lead chủ động cập nhật `PROGRESS.md` sau mỗi phiên đáng kể theo quy tắc ở **Tổng quan dự án**, không cần chờ nhắc lại.
 - Trước khi thay đổi chức năng, kiểm tra vị trí mã hiện tại trong `frontend/src/app/features/*`, `frontend/src/app/core/services` và `backend/src/*`; không dựa vào đường dẫn cũ trong nhật ký.
 - Khi chạy lại runtime, ghi ngày, cấu hình đã dùng (không kèm secret), lệnh/các bước, kết quả, dữ liệu test đã dọn hay chưa, và cập nhật các mục ưu tiên/vấn đề tồn đọng tương ứng.
+
+### 2026-11-21 — luồng nhập tay và gợi ý món theo đặc tả 2.1.1, 2.5.2, 2.6.2
+
+- Khi tạo bản ghi kho bằng nhập tay, backend thử liên kết dinh dưỡng chỉ khi một hồ sơ có tên trùng khớp duy nhất; lỗi nguồn hoặc không có kết quả vẫn lưu kho. Tra cứu từ DLPL cũng phải qua bước trùng tên ở kết quả tìm kiếm và dữ liệu chi tiết trước khi ghi liên kết.
+- Gợi ý giờ đọc toàn bộ thực phẩm của người dùng còn lượng và chưa hết hạn. Sau khi AI trả món, backend chỉ tra bổ sung cho các nguyên liệu thật sự được chọn; không tự ghép tên gần đúng.
+- Với gợi ý thiếu căn cứ, API trả phần kcal đã tính riêng (`knownKcal`) hoặc `null` nếu chưa có nguyên liệu nào tính được; `totalKcal` và độ chênh mục tiêu giữ `null`. Dashboard nêu tên nguyên liệu thiếu và không đối chiếu phương án đó với mục tiêu kcal. Không có dữ liệu phạm vi năng lượng trong nguồn hiện hữu nên không tự tạo khoảng kcal.
+- Ca API và browser QA `300 g thịt ba chỉ`: bản ghi được lưu, không có `food_id`, không bị thay bằng hồ sơ `Thịt lợn nạc`; AI dùng mục này trong món `Ba chỉ áp chảo` với 300 g và UI báo thiếu dữ liệu thay vì 0 kcal. Dữ liệu/tài khoản QA đã được xóa.
+- Xác minh: backend `npm.cmd test` đạt 13/13; kiểm tra cú pháp controller/service thành công; Angular development build thành công; browser QA tạo tài khoản, đặt mục tiêu, nhập/sửa đơn vị, tạo gợi ý và đọc kết quả qua accessibility snapshot. Chưa có integration test tự động cho DLPL/MộtAPI; kết quả nguồn ngoài vẫn phụ thuộc cấu hình và độ sẵn sàng của nhà cung cấp.

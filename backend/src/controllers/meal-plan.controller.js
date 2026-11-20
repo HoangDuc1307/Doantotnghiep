@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { findExactNutritionFood } from './food.controller.js';
 import { AiConfigurationError, AiProviderError, generateMealSuggestion, verifyMealPlan } from '../services/ai.service.js';
 
 export async function suggest(request, response, next) {
@@ -9,7 +10,7 @@ export async function suggest(request, response, next) {
          FROM inventory_items i LEFT JOIN foods f ON f.id = i.food_id
          WHERE i.user_id = $1 AND i.quantity > 0
            AND (i.expiry_date IS NULL OR i.expiry_date >= CURRENT_DATE)
-         ORDER BY i.expiry_date ASC NULLS LAST, i.name ASC LIMIT 15`,
+         ORDER BY i.expiry_date ASC NULLS LAST, i.name ASC`,
         [request.user.id],
       ),
       pool.query('SELECT daily_calorie_target FROM users WHERE id = $1', [request.user.id]),
@@ -24,11 +25,37 @@ export async function suggest(request, response, next) {
     const calorieTarget = userResult.rows[0]?.daily_calorie_target;
     if (!calorieTarget) return response.status(400).json({ message: 'Hãy thiết lập mục tiêu năng lượng trước khi tạo gợi ý.' });
 
-    response.json(await generateMealSuggestion({ items, calorieTarget }));
+    response.json(await generateMealSuggestion({
+      items,
+      calorieTarget,
+      enrichPlan: (plan) => linkSelectedIngredients(plan, items, request.user.id),
+    }));
   } catch (error) {
     if (error instanceof AiConfigurationError) return response.status(503).json({ message: error.message });
     if (error instanceof AiProviderError) return response.status(502).json({ message: error.message });
     next(error);
+  }
+}
+
+async function linkSelectedIngredients(plan, items, userId) {
+  const selectedIds = new Set(
+    Array.isArray(plan?.meals)
+      ? plan.meals.flatMap((meal) => Array.isArray(meal?.ingredients) ? meal.ingredients.map((ingredient) => ingredient?.inventoryId) : [])
+      : [],
+  );
+  for (const item of items) {
+    if (!selectedIds.has(item.id) || item.foodId || item.energyKcalPer100g !== null) continue;
+    const food = await findExactNutritionFood(item.name).catch(() => null);
+    if (!food) continue;
+    const linked = await pool.query(
+      `UPDATE inventory_items SET food_id = $1, updated_at = NOW()
+       WHERE id = $2 AND user_id = $3 AND food_id IS NULL RETURNING food_id`,
+      [food.id, item.id, userId],
+    );
+    if (linked.rowCount) {
+      item.foodId = food.id;
+      item.energyKcalPer100g = Number(food.energy_kcal_per_100g);
+    }
   }
 }
 
